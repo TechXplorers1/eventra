@@ -365,16 +365,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
                 SliverToBoxAdapter(
-                  child: GridView.count(
-                    crossAxisCount: 4,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.80,
-                    children: _serviceCategories.map((s) => _PremiumServiceTile(cat: s)).toList(),
-                  ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[0])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[1])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[2])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[3])),
+                          ]
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[4])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[5])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[6])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[7])),
+                          ]
+                        ),
+                      ]
+                    )
+                  )
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
 
@@ -571,6 +591,7 @@ class _UpcomingThisWeekCard extends StatelessWidget {
               height: 100, width: 160,
               decoration: BoxDecoration(image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover)),
               child: Stack(
+                fit: StackFit.expand,
                 children: [
                   Positioned(
                     top: 8, left: 8,
@@ -690,6 +711,7 @@ class _PopularVenueCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
+          fit: StackFit.expand,
           children: [
             Positioned(
               top: 0, left: 0, right: 0, height: 120,
@@ -756,6 +778,7 @@ class _PremiumFeaturedCard extends StatelessWidget {
       onTap: () => context.push('/event/${event.id}'),
       child: Container(
         width: 300,
+        height: 240,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
@@ -764,9 +787,14 @@ class _PremiumFeaturedCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
+          fit: StackFit.expand,
           children: [
             Positioned.fill(
-              child: Image.network(imageUrl, fit: BoxFit.cover),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(color: AppColors.card),
+              ),
             ),
             Positioned.fill(
               child: DecoratedBox(
@@ -887,6 +915,7 @@ class _PremiumServiceTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(cat.route),
       child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.secondary.withAlpha(100),
           borderRadius: BorderRadius.circular(16),

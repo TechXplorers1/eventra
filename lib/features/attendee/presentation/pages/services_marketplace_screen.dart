@@ -47,7 +47,13 @@ class _ServicesMarketplaceScreenState extends State<ServicesMarketplaceScreen> {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () => context.pop(),
+                    onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       width: 40, height: 40,

@@ -291,7 +291,13 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             InkWell(
-                              onTap: () => context.pop(),
+                              onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                               child: Container(
                                 width: 40, height: 40,
                                 decoration: BoxDecoration(color: AppColors.background.withOpacity(0.6), shape: BoxShape.circle),

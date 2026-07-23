@@ -118,7 +118,13 @@ class _OrganizerInviteScreenState extends ConsumerState<OrganizerInviteScreen> {
             decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
             child: Icon(LucideIcons.arrowLeft, size: 18, color: AppColors.foreground),
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

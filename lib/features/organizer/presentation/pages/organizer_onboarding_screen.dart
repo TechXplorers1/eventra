@@ -119,7 +119,13 @@ class _OrganizerOnboardingScreenState extends ConsumerState<OrganizerOnboardingS
             decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
             child: Icon(LucideIcons.arrowLeft, size: 20, color: AppColors.foreground),
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
         ),
         title: Text('Become an Organizer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       ),

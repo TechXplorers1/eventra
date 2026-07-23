@@ -46,7 +46,13 @@ class _OrganizerServiceProviderDetailsScreenState extends ConsumerState<Organize
               Text('Provider not found', style: TextStyle(color: AppColors.foreground, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => context.pop(),
+                onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                 child: Text('Go back', style: TextStyle(color: AppColors.primary, fontSize: 14)),
               ),
             ],
@@ -74,7 +80,13 @@ class _OrganizerServiceProviderDetailsScreenState extends ConsumerState<Organize
                     child: Row(
                       children: [
                         InkWell(
-                          onTap: () => context.pop(),
+                          onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                           borderRadius: BorderRadius.circular(20),
                           child: Container(
                             width: 40, height: 40,

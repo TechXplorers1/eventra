@@ -1,7 +1,7 @@
 import '../models/app_models.dart';
 
 final Map<String, String> categoryImages = {
-  'concert': 'https://images.unsplash.com/photo-1540039155732-6761b54f6ae5?auto=format&fit=crop&q=80',
+  'concert': 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&q=80',
   'sports': 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80',
   'comedy': 'https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&q=80',
   'nightlife': 'https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&q=80',

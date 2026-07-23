@@ -58,7 +58,13 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
               Text('Booking unavailable', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => context.pop(),
+                onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                 child: Text('Go back', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
               ),
             ],

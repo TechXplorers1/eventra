@@ -28,7 +28,13 @@ class VendorProfileScreen extends ConsumerWidget {
               Text('Vendor not found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => context.pop(),
+                onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                 child: Text('Go back', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
               ),
             ],
@@ -84,7 +90,13 @@ class VendorProfileScreen extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             InkWell(
-                              onTap: () => context.pop(),
+                              onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                               child: Container(
                                 width: 40, height: 40,
                                 decoration: BoxDecoration(color: AppColors.background.withOpacity(0.4), shape: BoxShape.circle),

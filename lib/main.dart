@@ -4,6 +4,23 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 
 void main() {
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+  };
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      child: Container(
+        color: Colors.red,
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Text(
+            details.exceptionAsString() + '\n\n' + (details.stack?.toString() ?? ''),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ),
+      ),
+    );
+  };
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -17,10 +34,10 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    
+
     return MaterialApp.router(
       title: 'Event Horizon',
-      theme: AppTheme.darkTheme, // We'll stick to dark theme as default per tailwind config
+      theme: AppTheme.darkTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );
