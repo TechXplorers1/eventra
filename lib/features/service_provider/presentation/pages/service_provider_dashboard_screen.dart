@@ -298,31 +298,34 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(children: [
-        Container(
-          width: 44, height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withAlpha(20),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          ),
-          child: Icon(LucideIcons.briefcase, size: 20, color: AppColors.primary),
+    return GestureDetector(
+      onTap: () => context.push('/service-provider/requests'),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.border),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(req.categoryName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.foreground)),
-          const SizedBox(height: 2),
-          Text('Budget: ₹${req.budget.toInt()}  •  ${req.eventDate.isNotEmpty ? req.eventDate : "TBD"}',
-              style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-        ])),
-        EvStatusBadge(req.status.toLowerCase()),
-      ]),
+        child: Row(children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(20),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            ),
+            child: Icon(LucideIcons.briefcase, size: 20, color: AppColors.primary),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(req.categoryName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.foreground)),
+            const SizedBox(height: 2),
+            Text('Budget: ₹${req.budget.toInt()}  •  ${req.eventDate.isNotEmpty ? req.eventDate : "TBD"}',
+                style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
+          ])),
+          EvStatusBadge(req.status.toLowerCase()),
+        ]),
+      ),
     );
   }
 }

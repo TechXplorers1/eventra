@@ -342,30 +342,33 @@ class _DashEventCard extends StatelessWidget {
     final color = _catColors[event.category] ?? AppColors.primary;
     final isPrivate = event.visibility == 'private';
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(children: [
-        Container(
-          width: 46, height: 46,
-          decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
-          child: Icon(LucideIcons.calendarDays, size: 20, color: color),
+    return GestureDetector(
+      onTap: () => context.push('/organizer/event/${event.id}'),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          border: Border.all(color: AppColors.border),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(event.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.foreground)),
-          const SizedBox(height: 3),
-          Text('${event.date}  •  ${event.venue}', maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-        ])),
-        const SizedBox(width: 8),
-        EvStatusBadge(isPrivate ? 'private' : 'public'),
-      ]),
+        child: Row(children: [
+          Container(
+            width: 46, height: 46,
+            decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+            child: Icon(LucideIcons.calendarDays, size: 20, color: color),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(event.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.foreground)),
+            const SizedBox(height: 3),
+            Text('${event.date}  •  ${event.venue}', maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
+          ])),
+          const SizedBox(width: 8),
+          EvStatusBadge(isPrivate ? 'private' : 'public'),
+        ]),
+      ),
     );
   }
 }
@@ -377,29 +380,32 @@ class _ServiceReqCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(children: [
-        Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.secondary,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          ),
-          child: Icon(LucideIcons.briefcase, size: 18, color: AppColors.mutedForeground),
+    return GestureDetector(
+      onTap: () => context.push('/organizer/services/requests'),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.border),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(req.categoryName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.foreground)),
-          Text('Budget: ₹${req.budget.toInt()}', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-        ])),
-        EvStatusBadge(req.status.toLowerCase()),
-      ]),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.secondary,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            ),
+            child: Icon(LucideIcons.briefcase, size: 18, color: AppColors.mutedForeground),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(req.categoryName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.foreground)),
+            Text('Budget: ₹${req.budget.toInt()}', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
+          ])),
+          EvStatusBadge(req.status.toLowerCase()),
+        ]),
+      ),
     );
   }
 }

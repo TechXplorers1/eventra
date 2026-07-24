@@ -1,5 +1,22 @@
 enum Role { attendee, organizer, service }
 
+// ─── Calendar Entry (custom note/block) ──────────────────────────────────────
+class CalendarEntry {
+  final String id;
+  final String date; // 'yyyy-MM-dd'
+  final String title;
+  final String note;
+  final String type; // 'event' | 'blocked'
+
+  const CalendarEntry({
+    required this.id,
+    required this.date,
+    required this.title,
+    this.note = '',
+    required this.type,
+  });
+}
+
 class AppNotification {
   final String id;
   final String title;

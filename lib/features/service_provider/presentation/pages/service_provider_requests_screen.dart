@@ -90,6 +90,15 @@ class _ServiceProviderRequestsScreenState extends ConsumerState<ServiceProviderR
             Text('Send Quote', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
             const SizedBox(height: 4),
             Text('${req.categoryName} • Client budget: ₹${req.budget.toInt()}', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+            if (req.eventDate.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Row(children: [
+                Icon(LucideIcons.calendarOff, size: 13, color: const Color(0xFFEF4444)),
+                const SizedBox(width: 6),
+                Text('${req.eventDate} will be auto-blocked in your calendar',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444))),
+              ]),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: priceCtrl,
@@ -111,14 +120,26 @@ class _ServiceProviderRequestsScreenState extends ConsumerState<ServiceProviderR
               child: ElevatedButton(
                 onPressed: () {
                   final price = double.tryParse(priceCtrl.text) ?? req.budget;
-                  ref.read(appProvider.notifier).acceptServiceRequest(
+                  final notifier = ref.read(appProvider.notifier);
+                  notifier.acceptServiceRequest(
                     req.id,
                     ref.read(appProvider).serviceProvider.businessName,
                     price,
                   );
+                  // Auto-block the event date on calendar
+                  if (req.eventDate.isNotEmpty) {
+                    try {
+                      // eventDate may be 'MMM dd, yyyy' or 'yyyy-MM-dd' — normalise to key
+                      final dateKey = _normaliseDateKey(req.eventDate);
+                      if (dateKey != null &&
+                          !ref.read(appProvider).blockedDates.contains(dateKey)) {
+                        notifier.toggleBlockDate(dateKey);
+                      }
+                    } catch (_) {}
+                  }
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Quote of ₹${price.toInt()} submitted!'),
+                    content: Text('Quote of ₹${price.toInt()} submitted! Date blocked in calendar.'),
                     backgroundColor: Colors.green,
                     behavior: SnackBarBehavior.floating,
                   ));
@@ -136,6 +157,29 @@ class _ServiceProviderRequestsScreenState extends ConsumerState<ServiceProviderR
       ),
     );
   }
+
+  /// Converts a date string (various formats) to 'yyyy-MM-dd' key.
+  String? _normaliseDateKey(String raw) {
+    raw = raw.trim();
+    // Already in yyyy-MM-dd
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(raw)) return raw;
+    // e.g. "Mar 15, 2026" or "Mar 15 2026"
+    const months = {
+      'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+      'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+      'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12',
+    };
+    final m = RegExp(r'([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})').firstMatch(raw);
+    if (m != null) {
+      final mo = months[m.group(1)!.toLowerCase()];
+      if (mo != null) {
+        final day = m.group(2)!.padLeft(2, '0');
+        return '${m.group(3)}-$mo-$day';
+      }
+    }
+    return null;
+  }
+
 
   Widget _buildRequestsList(List<ServiceRequest> list, bool isPending) {
     if (list.isEmpty) {

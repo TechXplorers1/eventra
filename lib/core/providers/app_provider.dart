@@ -24,6 +24,9 @@ class AppState {
   final ServiceProviderProfile serviceProvider;
   // V1 — Invitation system
   final List<EventInvite> invitations;
+  // Calendar blocking
+  final List<String> blockedDates;        // 'yyyy-MM-dd'
+  final List<CalendarEntry> calendarEntries;
 
   AppState({
     required this.isLoggedIn,
@@ -45,6 +48,8 @@ class AppState {
     required this.organizer,
     required this.serviceProvider,
     this.invitations = const [],
+    this.blockedDates = const [],
+    this.calendarEntries = const [],
   });
 
   AppState copyWith({
@@ -68,6 +73,8 @@ class AppState {
     ServiceProviderProfile? serviceProvider,
     bool clearRole = false,
     List<EventInvite>? invitations,
+    List<String>? blockedDates,
+    List<CalendarEntry>? calendarEntries,
   }) {
     return AppState(
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
@@ -89,6 +96,8 @@ class AppState {
       organizer: organizer ?? this.organizer,
       serviceProvider: serviceProvider ?? this.serviceProvider,
       invitations: invitations ?? this.invitations,
+      blockedDates: blockedDates ?? this.blockedDates,
+      calendarEntries: calendarEntries ?? this.calendarEntries,
     );
   }
 
@@ -328,6 +337,29 @@ class AppNotifier extends Notifier<AppState> {
       return r;
     }).toList();
     state = state.copyWith(serviceRequests: updated);
+  }
+
+  // ─── Calendar ──────────────────────────────────────────────────────────────────────────
+  void toggleBlockDate(String dateKey) {
+    final current = List<String>.from(state.blockedDates);
+    if (current.contains(dateKey)) {
+      current.remove(dateKey);
+    } else {
+      current.add(dateKey);
+    }
+    state = state.copyWith(blockedDates: current);
+  }
+
+  void addCalendarEntry(CalendarEntry entry) {
+    state = state.copyWith(
+      calendarEntries: [...state.calendarEntries, entry],
+    );
+  }
+
+  void removeCalendarEntry(String id) {
+    state = state.copyWith(
+      calendarEntries: state.calendarEntries.where((e) => e.id != id).toList(),
+    );
   }
 
   // ─── Profiles ────────────────────────────────────────────────────────────────
