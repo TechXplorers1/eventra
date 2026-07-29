@@ -411,6 +411,7 @@ class ServiceProviderProfile {
   final List<String> equipment;
   final List<String> servicesOffered;
   final String availability; // 'Available' | 'Busy' | 'On Leave'
+  final Map<String, String> socialLinks;
 
   // Venue-specific fields
   final int capacity;
@@ -438,6 +439,7 @@ class ServiceProviderProfile {
     this.equipment = const [],
     this.servicesOffered = const [],
     this.availability = 'Available',
+    this.socialLinks = const {},
     this.capacity = 0,
     this.address = '',
     this.amenities = const [],
@@ -468,6 +470,7 @@ class ServiceProviderProfile {
     List<String>? equipment,
     List<String>? servicesOffered,
     String? availability,
+    Map<String, String>? socialLinks,
     int? capacity,
     String? address,
     List<String>? amenities,
@@ -491,6 +494,7 @@ class ServiceProviderProfile {
       equipment: equipment ?? this.equipment,
       servicesOffered: servicesOffered ?? this.servicesOffered,
       availability: availability ?? this.availability,
+      socialLinks: socialLinks ?? this.socialLinks,
       capacity: capacity ?? this.capacity,
       address: address ?? this.address,
       amenities: amenities ?? this.amenities,

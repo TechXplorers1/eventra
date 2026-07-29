@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/data/mock_data.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class EventDetailsScreen extends StatelessWidget {
   final String id;
@@ -18,7 +19,7 @@ class EventDetailsScreen extends StatelessWidget {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF18181B),
+          backgroundColor: const Color(0xFF121214),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
@@ -43,17 +44,17 @@ class EventDetailsScreen extends StatelessWidget {
       );
     }
 
-    final categoryColor = _categoryColor(ev.category);
+    final categoryColor = AppColors.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0F),
+      backgroundColor: const Color(0xFF09090B),
       body: CustomScrollView(
         slivers: [
           // ── Collapsing Hero ────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            backgroundColor: categoryColor,
+            backgroundColor: const Color(0xFF09090B),
             leading: Padding(
               padding: const EdgeInsets.all(8),
               child: Material(
@@ -70,18 +71,25 @@ class EventDetailsScreen extends StatelessWidget {
               title: const SizedBox.shrink(), // title is in hero content below
               background: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      categoryColor,
-                      categoryColor.withAlpha(160),
-                      const Color(0xFF0A0A0F),
-                    ],
-                    stops: const [0.0, 0.6, 1.0],
+                  image: DecorationImage(
+                    image: NetworkImage(categoryImages[ev.imageKey] ?? 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80'),
+                    fit: BoxFit.cover,
                   ),
                 ),
-                child: Padding(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withAlpha(50),
+                        Colors.black.withAlpha(120),
+                        const Color(0xFF09090B),
+                      ],
+                      stops: const [0.0, 0.6, 1.0],
+                    ),
+                  ),
+                  child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,6 +126,7 @@ class EventDetailsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                ),
               ),
             ),
           ),
@@ -152,7 +161,7 @@ class EventDetailsScreen extends StatelessWidget {
               margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF18181B),
+                color: const Color(0xFF121214),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withAlpha(10)),
               ),
@@ -232,7 +241,7 @@ class EventDetailsScreen extends StatelessWidget {
       // ── Sticky Book Button ─────────────────────────────────────────
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF18181B),
+          color: const Color(0xFF121214),
           border: Border(top: BorderSide(color: Colors.white.withAlpha(15))),
           boxShadow: [BoxShadow(color: Colors.black.withAlpha(100), blurRadius: 20)],
         ),
@@ -275,14 +284,14 @@ class EventDetailsScreen extends StatelessWidget {
 
   static Color _categoryColor(String category) {
     return const {
-      'Music':     Color(0xFF7C3AED),
+      'Music':     Color(0xFF9B66E0),
       'Sports':    Color(0xFF059669),
       'Comedy':    Color(0xFFD97706),
       'Nightlife': Color(0xFF2563EB),
       'Arts':      Color(0xFFDB2777),
       'Wedding':   Color(0xFFDC2626),
-      'Festival':  Color(0xFF7C3AED),
-    }[category] ?? const Color(0xFF7C3AED);
+      'Festival':  Color(0xFF9B66E0),
+    }[category] ?? const Color(0xFF9B66E0);
   }
 
   static Widget _headerChip(IconData icon, String label) {
@@ -317,7 +326,7 @@ class EventDetailsScreen extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF18181B),
+        color: const Color(0xFF121214),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withAlpha(10)),
       ),
@@ -361,7 +370,7 @@ class EventDetailsScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Q  ', style: TextStyle(fontSize: 12, color: Color(0xFF7C3AED), fontWeight: FontWeight.bold)),
+              const Text('Q  ', style: TextStyle(fontSize: 12, color: Color(0xFF9B66E0), fontWeight: FontWeight.bold)),
               Expanded(child: Text(q,
                 style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600))),
             ],

@@ -33,7 +33,7 @@ void showServiceBookingDetailModal(BuildContext context, ServiceBooking booking)
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                     decoration: const BoxDecoration(
                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                      gradient: LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)]), // gradient-primary equivalent
+                      gradient: LinearGradient(colors: [Color(0xFF9B66E0), Color(0xFFC29CE0)]), // gradient-primary equivalent
                     ),
                     child: Row(
                       children: [

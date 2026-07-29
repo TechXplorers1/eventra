@@ -114,7 +114,7 @@ class _OrganizerServicesScreenState extends State<OrganizerServicesScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.75,
+                  childAspectRatio: 1.6,
                 ),
                 itemCount: filteredCategories.length,
                 itemBuilder: (context, index) {

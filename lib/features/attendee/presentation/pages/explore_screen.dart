@@ -36,7 +36,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   String _query = '';
   String _activeCategory = 'All';
   String _activeTime = 'All Time';
-  bool _gridView = false;
+  bool _gridView = true;
 
   @override
   void dispose() {
@@ -378,43 +378,61 @@ class _ExploreGridCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Header gradient
-          Container(
-            height: 90,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color.withAlpha(200), color.withAlpha(80)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
+          // Header image (approx 70%)
+          Expanded(
+            flex: 7,
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(categoryImages[event.imageKey] ?? 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80'),
+                  fit: BoxFit.cover,
+                ),
               ),
+              child: Stack(children: [
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.black.withAlpha(150), Colors.transparent, Colors.black.withAlpha(150)],
+                      begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                Positioned(top: 8, left: 10, child: EvBadge(label: event.category, color: color, small: true)),
+                Positioned(bottom: 8, right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.black.withAlpha(180), borderRadius: BorderRadius.circular(4)),
+                    child: Text(event.price == 0 ? 'Free' : '₹${event.price.toInt()}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+                  ),
+                ),
+              ]),
             ),
-            child: Stack(children: [
-              Positioned(top: 8, left: 10, child: EvBadge(label: event.category, color: Colors.white, small: true)),
-              Positioned(bottom: 8, right: 10,
-                child: Text(event.price == 0 ? 'Free' : '₹${event.price.toInt()}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white)),
-              ),
-            ]),
           ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(event.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.foreground, height: 1.3)),
-              const SizedBox(height: 5),
-              Row(children: [
-                Icon(LucideIcons.calendar, size: 10, color: AppColors.mutedForeground),
-                const SizedBox(width: 3),
-                Expanded(child: Text(event.date, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10, color: AppColors.mutedForeground))),
+          // Content (approx 30%)
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(event.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.foreground, height: 1.2)),
+                const Spacer(),
+                Row(children: [
+                  Icon(LucideIcons.calendar, size: 10, color: AppColors.mutedForeground),
+                  const SizedBox(width: 3),
+                  Expanded(child: Text(event.date, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 10, color: AppColors.mutedForeground))),
+                ]),
+                const SizedBox(height: 2),
+                Row(children: [
+                  Icon(LucideIcons.mapPin, size: 10, color: AppColors.mutedForeground),
+                  const SizedBox(width: 3),
+                  Expanded(child: Text(event.city, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 10, color: AppColors.mutedForeground))),
+                ]),
               ]),
-              const SizedBox(height: 2),
-              Row(children: [
-                Icon(LucideIcons.mapPin, size: 10, color: AppColors.mutedForeground),
-                const SizedBox(width: 3),
-                Expanded(child: Text(event.city, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10, color: AppColors.mutedForeground))),
-              ]),
-            ]),
+            ),
           ),
         ]),
       ),

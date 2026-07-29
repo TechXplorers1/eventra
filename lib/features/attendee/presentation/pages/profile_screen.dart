@@ -93,9 +93,10 @@ class ProfileScreen extends ConsumerWidget {
                 // ── My Activity ──────────────────────────────────────────
                 _SectionLabel('My Activity'),
                 _MenuGroup([
-                  _MenuItem(LucideIcons.ticket, 'My Tickets', 'View booked tickets', () => context.push('/tickets')),
-                  _MenuItem(LucideIcons.briefcase, 'My Services', 'Track service bookings', () => context.push('/tickets')),
-                  _MenuItem(LucideIcons.mailOpen, 'Invitations', 'Private event invitations', () => context.push('/tickets')),
+                  _MenuItem(LucideIcons.ticket, 'My Tickets', 'View booked tickets', () => context.go('/tickets')),
+                  _MenuItem(LucideIcons.briefcase, 'My Services', 'Track service bookings', () => context.go('/tickets?tab=services')),
+                  _MenuItem(LucideIcons.mailOpen, 'Invitations', 'Private event invitations', () => context.go('/tickets?tab=invites')),
+                  _MenuItem(LucideIcons.heart, 'Saved', 'Your favorite events and vendors', () => context.push('/saved')),
                 ]),
                 const SizedBox(height: AppSpacing.sectionSpacing),
 

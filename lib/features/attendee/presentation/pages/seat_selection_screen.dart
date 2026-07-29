@@ -16,10 +16,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   Set<String> _bookedSeats = {};
   Set<String> _bestSeats = {};
 
-  static const _bg = Color(0xFF0A0A0F);
-  static const _card = Color(0xFF18181B);
-  static const _muted = Color(0xFF71717A);
-  static const _purple = Color(0xFF7C3AED);
+  static const _bg = Color(0xFF09090B);
+  static const _card = Color(0xFF121214);
+  static const _muted = Color(0xFFA1A1AA);
+  static const _purple = Color(0xFF9B66E0);
   static const _border = Color(0xFF27272A);
 
   void _selectSection(SeatSection sec) {
@@ -113,9 +113,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           child: Container(
             width: 200, height: 36,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFFF6B35)]),
+              gradient: const LinearGradient(colors: [Color(0xFF9B66E0), Color(0xFFFF6B35)]),
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(100)),
-              boxShadow: [BoxShadow(color: const Color(0xFF7C3AED).withAlpha(80), blurRadius: 12)],
+              boxShadow: [BoxShadow(color: const Color(0xFF9B66E0).withAlpha(80), blurRadius: 12)],
             ),
             alignment: Alignment.center,
             child: const Text('STAGE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 3)),
@@ -189,7 +189,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               const SizedBox(width: 16),
               _legend('Selected', sectionColor, Colors.white),
               const SizedBox(width: 16),
-              _legend('Booked', const Color(0xFF3F3F46), const Color(0xFF52525B)),
+              _legend('Booked', const Color(0xFF27272A), const Color(0xFF3F3F46)),
             ],
           ),
         ),
@@ -236,13 +236,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
                           Color bg, border;
                           if (isBooked) {
-                            bg = const Color(0xFF3F3F46); border = Colors.transparent;
+                            bg = const Color(0xFF27272A); border = Colors.transparent;
                           } else if (isSelected) {
                             bg = sectionColor; border = sectionColor;
                           } else if (isBest) {
                             bg = sectionColor.withAlpha(60); border = sectionColor;
                           } else {
-                            bg = _border; border = const Color(0xFF3F3F46);
+                            bg = _border; border = const Color(0xFF27272A);
                           }
 
                           return GestureDetector(
@@ -293,7 +293,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     : '${_selectedSeats.length} seat(s) · ${_selectedSeats.take(4).join(', ')}${_selectedSeats.length > 4 ? '…' : ''}',
                   style: const TextStyle(fontSize: 11, color: Colors.white54)),
                 Text('₹${totalPrice.toInt()}',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF7C3AED))),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF9B66E0))),
               ],
             ),
           ),
@@ -318,7 +318,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               decoration: BoxDecoration(
-                color: _selectedSeats.isEmpty ? _border : const Color(0xFF7C3AED),
+                color: _selectedSeats.isEmpty ? _border : const Color(0xFF9B66E0),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(

@@ -29,7 +29,7 @@ const _organizerTabs = [
   _NavItem('/organizer',          LucideIcons.layoutDashboard, 'Dashboard'),
   _NavItem('/organizer/events',   LucideIcons.calendarDays,    'Events'),
   _NavItem('/organizer/create',   LucideIcons.plus,            'Create'),
-  _NavItem('/organizer/services', LucideIcons.briefcase,       'Requests'),
+  _NavItem('/organizer/services/requests', LucideIcons.briefcase,       'Requests'),
   _NavItem('/organizer/profile',  LucideIcons.user,            'Profile'),
 ];
 

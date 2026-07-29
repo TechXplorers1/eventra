@@ -292,6 +292,12 @@ class AppNotifier extends Notifier<AppState> {
             state.serviceRequests.where((r) => r.id != id).toList());
   }
 
+  void updateServiceRequestStatus(String id, String status) {
+    state = state.copyWith(
+      serviceRequests: state.serviceRequests.map((r) => r.id == id ? r.copyWith(status: status) : r).toList(),
+    );
+  }
+
   /// SP accepts a booking request — updates request status and credits SP wallet
   void acceptServiceRequest(String id, String vendorName, double price) {
     final updated = state.serviceRequests.map((r) {

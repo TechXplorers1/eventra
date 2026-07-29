@@ -148,25 +148,37 @@ class OrganizerServiceRequestsScreen extends ConsumerWidget {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () {},
-                                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: AppColors.foreground, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                                      child: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              request.status == 'Cancelled'
+                                  ? Row(
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () => context.push('/organizer/services/providers/${request.categoryId}'),
+                                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.primaryForeground, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                                            child: const Text('Find Another Provider', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () {},
+                                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: AppColors.foreground, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                                            child: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () => ref.read(appProvider.notifier).updateServiceRequestStatus(request.id, 'Cancelled'),
+                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.1), foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                                            child: const Text('Cancel', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () => ref.read(appProvider.notifier).removeServiceRequest(request.id),
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.1), foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                                      child: const Text('Cancel', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
                         );

@@ -118,7 +118,7 @@ class OrganizerDashboardScreen extends ConsumerWidget {
                       crossAxisCount: 2,
                       mainAxisSpacing: AppSpacing.sm,
                       crossAxisSpacing: AppSpacing.sm,
-                      childAspectRatio: 1.35,
+                      childAspectRatio: 2.0,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
@@ -207,19 +207,19 @@ class OrganizerDashboardScreen extends ConsumerWidget {
                     ),
                   )
                 else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) {
-                        final e = myEvents[i];
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.pagePaddingH, 0,
-                            AppSpacing.pagePaddingH, AppSpacing.itemSpacing,
-                          ),
-                          child: _DashEventCard(event: e),
-                        );
-                      },
-                      childCount: myEvents.take(3).length,
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 90,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: myEvents.take(3).length,
+                        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                        itemBuilder: (_, i) => SizedBox(
+                          width: 300,
+                          child: _DashEventCard(event: myEvents[i]),
+                        ),
+                      ),
                     ),
                   ),
 
@@ -246,16 +246,19 @@ class OrganizerDashboardScreen extends ConsumerWidget {
                     ),
                   )
                 else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) => Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.pagePaddingH, 0,
-                          AppSpacing.pagePaddingH, AppSpacing.itemSpacing,
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 80,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: serviceRequests.take(3).length,
+                        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                        itemBuilder: (_, i) => SizedBox(
+                          width: 300,
+                          child: _ServiceReqCard(req: serviceRequests[i]),
                         ),
-                        child: _ServiceReqCard(req: serviceRequests[i]),
                       ),
-                      childCount: serviceRequests.take(3).length,
                     ),
                   ),
 

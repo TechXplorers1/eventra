@@ -20,6 +20,7 @@ import '../../features/attendee/presentation/pages/services_marketplace_screen.d
 import '../../features/attendee/presentation/pages/service_vendors_screen.dart';
 import '../../features/attendee/presentation/pages/vendor_profile_screen.dart';
 import '../../features/attendee/presentation/pages/service_booking_screen.dart';
+import '../../features/attendee/presentation/pages/saved_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_dashboard_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_events_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_wallet_screen.dart';
@@ -30,6 +31,8 @@ import '../../features/organizer/presentation/pages/organizer_scan_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_event_detail_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_services_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_service_requests_screen.dart';
+import '../../features/organizer/presentation/pages/organizer_service_providers_screen.dart';
+import '../../features/organizer/presentation/pages/organizer_service_provider_details_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_invite_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_dashboard_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_requests_screen.dart';
@@ -143,8 +146,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home',    builder: (_, __) => const HomeScreen()),
       GoRoute(path: '/explore', builder: (_, __) => const ExploreScreen()),
       GoRoute(path: '/search',  builder: (_, __) => const SearchScreen()),
-      GoRoute(path: '/tickets', builder: (_, __) => const TicketsScreen()),
+      GoRoute(
+        path: '/tickets', 
+        builder: (_, s) {
+          final tabStr = s.uri.queryParameters['tab'];
+          int initialTab = 0;
+          if (tabStr == 'services') initialTab = 1;
+          if (tabStr == 'invites') initialTab = 2;
+          return TicketsScreen(initialTab: initialTab);
+        },
+      ),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: '/saved',   builder: (_, __) => const SavedScreen()),
 
       GoRoute(
         path: '/event/:id',
@@ -242,11 +255,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/organizer/services/providers/:id',
-        redirect: (_, __) => '/organizer/services',
+        builder: (_, s) => OrganizerServiceProvidersScreen(categoryId: s.pathParameters['id']!),
       ),
       GoRoute(
         path: '/organizer/services/vendor/:categoryId/:providerId',
-        redirect: (_, __) => '/organizer/services',
+        builder: (_, s) => OrganizerServiceProviderDetailsScreen(
+          categoryId: s.pathParameters['categoryId']!,
+          providerId: s.pathParameters['providerId']!,
+        ),
       ),
     ],
   );

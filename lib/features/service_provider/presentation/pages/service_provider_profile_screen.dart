@@ -137,6 +137,36 @@ class ServiceProviderProfileScreen extends ConsumerWidget {
                                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.foreground)),
                           ],
                         ]),
+                      if (sp.socialLinks.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Divider(height: 1, color: AppColors.border),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: sp.socialLinks.entries.map((entry) {
+                            IconData iconData;
+                            switch (entry.key) {
+                              case 'instagram': iconData = LucideIcons.instagram; break;
+                              case 'facebook': iconData = LucideIcons.facebook; break;
+                              case 'twitter': iconData = LucideIcons.twitter; break;
+                              case 'website': iconData = LucideIcons.globe; break;
+                              default: iconData = LucideIcons.link;
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: InkWell(
+                                onTap: () {},
+                                child: Row(
+                                  children: [
+                                    Icon(iconData, size: 14, color: AppColors.primary),
+                                    const SizedBox(width: 4),
+                                    Text(entry.key[0].toUpperCase() + entry.key.substring(1), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ]),
                   ),
                 const SizedBox(height: AppSpacing.sectionSpacing),

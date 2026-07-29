@@ -493,7 +493,20 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(color: AppColors.secondary, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)),
                       child: TextField(
-                        onChanged: (v) => setState(() => _date = v), // Ideally use a DatePicker
+                        key: ValueKey(_date),
+                        controller: TextEditingController(text: _date),
+                        readOnly: true,
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2030),
+                          );
+                          if (date != null) {
+                            setState(() => _date = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}');
+                          }
+                        },
                         style: TextStyle(color: AppColors.foreground),
                         decoration: InputDecoration(
                           hintText: 'YYYY-MM-DD',

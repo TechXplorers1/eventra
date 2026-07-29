@@ -234,7 +234,7 @@ class EvKpiCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          Spacer(),
           Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.foreground)),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),

@@ -16,11 +16,11 @@ class PaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
-  static const _bg     = Color(0xFF0A0A0F);
-  static const _card   = Color(0xFF18181B);
-  static const _purple = Color(0xFF7C3AED);
+  static const _bg     = Color(0xFF09090B);
+  static const _card   = Color(0xFF121214);
+  static const _purple = Color(0xFF9B66E0);
   static const _border = Color(0xFF27272A);
-  static const _muted  = Color(0xFF71717A);
+  static const _muted  = Color(0xFFA1A1AA);
 
   String _selectedMethod = 'upi';
 
@@ -69,7 +69,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+                colors: [Color(0xFF9B66E0), Color(0xFFB48CE8)],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -185,7 +185,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF9333EA)]),
+                gradient: const LinearGradient(colors: [Color(0xFF9B66E0), Color(0xFFB48CE8)]),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [BoxShadow(color: _purple.withAlpha(80), blurRadius: 12, offset: const Offset(0, 4))],
               ),
