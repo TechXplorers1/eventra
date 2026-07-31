@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/data/mock_data.dart';
+import '../../../../core/models/app_models.dart';
+import '../../../../core/providers/app_provider.dart';
 
-class SeatSelectionScreen extends StatefulWidget {
+class SeatSelectionScreen extends ConsumerStatefulWidget {
   final String eventId;
   const SeatSelectionScreen({super.key, required this.eventId});
 
   @override
-  State<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
+  ConsumerState<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
 }
 
-class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
+class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
   SeatSection? _selectedSection;
   final Set<String> _selectedSeats = {};
   Set<String> _bookedSeats = {};
   Set<String> _bestSeats = {};
+  int _ticketQuantity = 1;
 
   static const _bg = Color(0xFF09090B);
   static const _card = Color(0xFF121214);
@@ -40,6 +44,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         }
       }
     }
+    
+    // Fix 7: Add actually booked seats from the global state
+    final appState = ref.read(appProvider);
+    final actualTickets = appState.bookedTickets.where(
+      (t) => t.eventId == widget.eventId && t.ticketType == sec.name
+    );
+    for (final t in actualTickets) {
+      booked.addAll(t.seats);
+    }
+
     setState(() {
       _selectedSection = sec;
       _selectedSeats.clear();
@@ -61,10 +75,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Direct mockEvents lookup — no Riverpod
-    final event = mockEvents.firstWhere(
+    // Use appProvider.allEvents so organizer-created events are bookable too
+    final allEvents = ref.watch(appProvider).allEvents;
+    final event = allEvents.firstWhere(
       (e) => e.id == widget.eventId,
-      orElse: () => mockEvents[0],
+      orElse: () => allEvents.isNotEmpty ? allEvents[0] : mockEvents[0],
     );
 
     final sec = _selectedSection;
@@ -105,6 +120,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   // ── SECTION PICKER ──────────────────────────────────────────────────────────
   Widget _buildSectionPicker(EventData event) {
+    if (event.seatingLayouts.isEmpty) {
+      return _buildGeneralAdmissionPicker(event);
+    }
+    
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -125,7 +144,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         const Text('Choose a Ticket Category', textAlign: TextAlign.center,
           style: TextStyle(fontSize: 14, color: Colors.white70)),
         const SizedBox(height: 20),
-        ...seatSections.map((sec) {
+        ...event.seatingLayouts.map((sec) {
           final col = Color(sec.colorHex);
           return GestureDetector(
             onTap: () => _selectSection(sec),
@@ -169,6 +188,87 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           );
         }),
       ],
+    );
+  }
+
+  Widget _buildGeneralAdmissionPicker(EventData event) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.confirmation_number_outlined, size: 64, color: const Color(0xFF9B66E0).withAlpha(128)),
+          const SizedBox(height: 24),
+          const Text('General Admission', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Unassigned seating / standing area.', style: TextStyle(color: Colors.white54, fontSize: 14)),
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Ticket Quantity', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Text('₹${event.price.toInt()} each', style: const TextStyle(color: Color(0xFF9B66E0), fontWeight: FontWeight.bold, fontSize: 18)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _ticketQuantity > 1 ? () => setState(() => _ticketQuantity--) : null,
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.white),
+                    ),
+                    Text('$_ticketQuantity', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      onPressed: _ticketQuantity < 10 ? () => setState(() => _ticketQuantity++) : null,
+                      icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9B66E0),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                context.push('/order-summary', extra: {
+                  'eventId': event.id,
+                  'eventTitle': event.title,
+                  'eventDate': event.date,
+                  'eventTime': event.time,
+                  'eventVenue': event.venue,
+                  'eventCity': event.city,
+                  'eventImageKey': event.imageKey,
+                  'sectionName': 'General Admission',
+                  'seatCount': _ticketQuantity,
+                  'seats': <String>[],
+                  'pricePerSeat': event.price,
+                  'totalPrice': event.price * _ticketQuantity,
+                });
+              },
+              child: Text('Continue - ₹${(event.price * _ticketQuantity).toInt()}', 
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
@@ -230,6 +330,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         const SizedBox(width: 6),
                         ...List.generate(sec.seatsPerRow, (c) {
                           final seatId = '$rowLetter${c + 1}';
+                          if (sec.disabledSeats.contains(seatId)) {
+                            return Container(
+                              width: 22, height: 22,
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                            );
+                          }
+
                           final isBooked = _bookedSeats.contains(seatId);
                           final isSelected = _selectedSeats.contains(seatId);
                           final isBest = _bestSeats.contains(seatId) && !isBooked && !isSelected;

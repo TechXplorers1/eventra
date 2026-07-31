@@ -42,6 +42,7 @@ import '../../features/service_provider/presentation/pages/service_provider_prof
 import '../../features/service_provider/presentation/pages/service_provider_portfolio_edit_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_packages_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_reviews_screen.dart';
+import '../../features/service_provider/presentation/pages/service_provider_seating_manager_screen.dart';
 import '../../features/shared/presentation/pages/notifications_screen.dart';
 import '../../features/shared/presentation/pages/payment_methods_screen.dart';
 import '../../features/shared/presentation/pages/help_support_screen.dart';
@@ -218,6 +219,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) => OrganizerInviteScreen(
           eventId: s.pathParameters['eventId']!,
           eventTitle: s.uri.queryParameters['title'] ?? 'Event',
+          eventDate: s.uri.queryParameters['date'] ?? 'Upcoming',
+          eventVenue: s.uri.queryParameters['venue'] ?? 'See event details',
+          eventImageKey: s.uri.queryParameters['image'] ?? 'concert',
         ),
       ),
       GoRoute(path: '/organizer/services',          builder: (_, __) => const OrganizerServicesScreen()),
@@ -232,6 +236,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/service-provider/portfolio',  builder: (_, __) => const ServiceProviderPortfolioEditScreen()),
       GoRoute(path: '/service-provider/packages',   builder: (_, __) => const ServiceProviderPackagesScreen()),
       GoRoute(path: '/service-provider/reviews',    builder: (_, __) => const ServiceProviderReviewsScreen()),
+      GoRoute(path: '/service-provider/seating',    builder: (_, __) => const ServiceProviderSeatingManagerScreen()),
 
       // ── Shared ───────────────────────────────────────────────────────────
       GoRoute(path: '/notifications',   builder: (_, __) => const NotificationsScreen()),

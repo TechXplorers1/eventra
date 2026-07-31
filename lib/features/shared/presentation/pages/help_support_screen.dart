@@ -261,7 +261,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   Widget _buildActionItem(IconData icon, String label, String sub, Color color) {
     return Expanded(
       child: InkWell(
-        onTap: () {},
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening help article...')));
+        },
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),

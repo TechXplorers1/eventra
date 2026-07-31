@@ -73,6 +73,7 @@ class _ServiceProviderCalendarScreenState
     List<CalendarEntry> entries,
     List<ServiceRequest> gigs,
     String vendorId,
+    List<ServiceBooking> directBookings,
   ) {
     final key = _dateKey(d);
     final isBlocked = blocked.contains(key);
@@ -85,7 +86,16 @@ class _ServiceProviderCalendarScreenState
       }
     });
     final hasEntry = entries.any((e) => e.date == key);
-    return _DayStatus(isBlocked: isBlocked, hasGig: hasGig, hasEntry: hasEntry);
+    // Check direct bookings from attendees
+    final hasDirectBooking = directBookings.any((b) {
+      try {
+        final gd = _parseKey(b.eventDate);
+        return gd.year == d.year && gd.month == d.month && gd.day == d.day;
+      } catch (_) {
+        return false;
+      }
+    });
+    return _DayStatus(isBlocked: isBlocked, hasGig: hasGig, hasEntry: hasEntry, hasDirectBooking: hasDirectBooking);
   }
 
   // ── tap on a day cell ─────────────────────────────────────────────────────
@@ -113,6 +123,8 @@ class _ServiceProviderCalendarScreenState
         state.serviceRequests.where((r) => r.vendorId == vendorId && r.status == 'Confirmed').toList();
     final allGigs = state.serviceRequests.where((r) => r.status == 'Confirmed').toList();
     final displayGigs = confirmedGigs.isNotEmpty ? confirmedGigs : allGigs;
+    // Fix 4: Include direct bookings from attendees
+    final directBookings = state.serviceBookings.where((b) => b.vendorId == vendorId).toList();
 
     final gridDays = _buildGridDays();
 
@@ -194,7 +206,8 @@ class _ServiceProviderCalendarScreenState
                           state.blockedDates,
                           state.calendarEntries,
                           displayGigs,
-                          vendorId);
+                          vendorId,
+                          directBookings);
                       final isSelected = _selectedDay != null &&
                           _selectedDay!.day == day.day &&
                           _selectedDay!.month == day.month &&
@@ -222,6 +235,8 @@ class _ServiceProviderCalendarScreenState
                   child: Row(
                     children: [
                       _LegendDot(color: AppColors.primary, label: 'Booked'),
+                      const SizedBox(width: 10),
+                      _LegendDot(color: const Color(0xFF06B6D4), label: 'Direct'),
                       const SizedBox(width: 10),
                       _LegendDot(color: const Color(0xFFEF4444), label: 'Blocked'),
                       const SizedBox(width: 10),
@@ -310,7 +325,8 @@ class _DayStatus {
   final bool isBlocked;
   final bool hasGig;
   final bool hasEntry;
-  const _DayStatus({required this.isBlocked, required this.hasGig, required this.hasEntry});
+  final bool hasDirectBooking;
+  const _DayStatus({required this.isBlocked, required this.hasGig, required this.hasEntry, this.hasDirectBooking = false});
 }
 
 class _DayCell extends StatelessWidget {
@@ -368,6 +384,7 @@ class _DayCell extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (status.hasGig) _Dot(color: isSelected ? Colors.white : AppColors.primary),
+                if (status.hasDirectBooking && !status.hasGig) _Dot(color: isSelected ? Colors.white : const Color(0xFF06B6D4)),
                 if (status.isBlocked && !isSelected) _Dot(color: const Color(0xFFEF4444)),
                 if (status.hasEntry) _Dot(color: const Color(0xFFF59E0B)),
               ],
@@ -675,55 +692,64 @@ class _GigTile extends StatelessWidget {
   final ServiceRequest gig;
   const _GigTile({required this.gig});
 
+  Widget _badge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(6)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 10, color: AppColors.mutedForeground),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.foreground, fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary, width: 1.5),
       ),
-      child: Row(children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(LucideIcons.briefcase, size: 16, color: AppColors.primary),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(gig.eventName.isNotEmpty ? gig.eventName : gig.categoryName,
-              style: TextStyle(color: AppColors.foreground, fontSize: 13, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 2),
-          Text(
-            '${gig.categoryName}  •  ₹${gig.budget.toInt()}  •  ${gig.duration}',
-            style: TextStyle(color: AppColors.mutedForeground, fontSize: 11),
-          ),
-          if (gig.eventVenue.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Row(children: [
-              Icon(LucideIcons.mapPin, size: 11, color: AppColors.mutedForeground),
-              const SizedBox(width: 3),
-              Expanded(child: Text(gig.eventVenue,
-                  style: TextStyle(color: AppColors.mutedForeground, fontSize: 11),
-                  overflow: TextOverflow.ellipsis)),
-            ]),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text(gig.categoryName, style: TextStyle(color: AppColors.foreground, fontSize: 14, fontWeight: FontWeight.bold))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withAlpha(25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Confirmed',
+                    style: TextStyle(color: AppColors.success, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(gig.eventName.isNotEmpty ? gig.eventName : 'Event Details TBD', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _badge(LucideIcons.mapPin, gig.eventVenue.isNotEmpty ? gig.eventVenue : 'Location TBD'),
+                _badge(LucideIcons.indianRupee, '₹${gig.budget.toInt()}'),
+                _badge(LucideIcons.clock, gig.duration),
+              ],
+            ),
           ],
-        ])),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(0xFF22C55E).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text('Confirmed',
-              style: const TextStyle(color: Color(0xFF22C55E), fontSize: 10, fontWeight: FontWeight.w700)),
         ),
-      ]),
+      ),
     );
   }
 }

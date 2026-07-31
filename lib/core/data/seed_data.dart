@@ -218,6 +218,7 @@ final List<EventData> seededPublishedEvents = [
     featured: false,
     spotlight: false,
     visibility: 'public',
+    seatingLayouts: seatSections,
   ),
   EventData(
     id: 'E002',

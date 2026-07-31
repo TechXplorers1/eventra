@@ -19,11 +19,12 @@ class ServiceProviderDashboardScreen extends ConsumerWidget {
     final provider = appState.serviceProvider;
     final vendorId = provider.vendorId.isNotEmpty ? provider.vendorId : 'v1';
     final requests = appState.serviceRequests.where((r) => r.vendorId == vendorId).toList();
+    final directBookings = appState.serviceBookings.where((b) => b.vendorId == vendorId).toList();
 
     final revenue = appState.spWalletBalance;
     final pending = requests.where((r) => r.status == 'Quote Requested').length;
-    final confirmed = requests.where((r) => r.status == 'Confirmed').length;
-    final total = requests.length;
+    final confirmed = requests.where((r) => r.status == 'Confirmed').length + directBookings.length;
+    final total = requests.length + directBookings.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -147,6 +148,8 @@ class ServiceProviderDashboardScreen extends ConsumerWidget {
                         _QuickAction(icon: LucideIcons.package, label: 'Packages', color: AppColors.accent, onTap: () => context.push('/service-provider/packages')),
                         const SizedBox(width: AppSpacing.sm),
                         _QuickAction(icon: LucideIcons.star, label: 'Reviews', color: const Color(0xFFF59E0B), onTap: () => context.push('/service-provider/reviews')),
+                        const SizedBox(width: AppSpacing.sm),
+                        _QuickAction(icon: LucideIcons.layoutGrid, label: 'Seating', color: const Color(0xFF06B6D4), onTap: () => context.push('/service-provider/seating')),
                       ]),
                     ]),
                   ),
@@ -158,7 +161,7 @@ class ServiceProviderDashboardScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
                     child: EvSectionHeader(
-                      title: 'Recent Requests',
+                      title: 'Recent Bookings & Requests',
                       actionLabel: 'View All',
                       onAction: () => context.push('/service-provider/requests'),
                     ),
@@ -166,25 +169,33 @@ class ServiceProviderDashboardScreen extends ConsumerWidget {
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
 
-                if (requests.isEmpty)
+                if (requests.isEmpty && directBookings.isEmpty)
                   SliverToBoxAdapter(
                     child: EvEmptyState(
                       icon: LucideIcons.inbox,
                       title: 'No Bookings Yet',
-                      subtitle: 'When organizers book your service, requests will appear here.',
+                      subtitle: 'When organizers or attendees book your service, they will appear here.',
                     ),
                   )
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (_, i) => Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.pagePaddingH, 0,
-                          AppSpacing.pagePaddingH, AppSpacing.itemSpacing,
-                        ),
-                        child: _RequestCard(req: requests[i]),
-                      ),
-                      childCount: requests.take(5).length,
+                      (_, i) {
+                        final all = <dynamic>[...requests, ...directBookings];
+                        all.sort((a, b) {
+                           // sort logic if needed, but for now just show them
+                           return 0;
+                        });
+                        final item = all[i];
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.pagePaddingH, 0,
+                            AppSpacing.pagePaddingH, AppSpacing.itemSpacing,
+                          ),
+                          child: item is ServiceRequest ? _RequestCard(req: item) : _DirectBookingCard(booking: item as ServiceBooking),
+                        );
+                      },
+                      childCount: [...requests, ...directBookings].take(5).length,
                     ),
                   ),
 
@@ -296,35 +307,74 @@ class _RequestCard extends StatelessWidget {
   final ServiceRequest req;
   const _RequestCard({required this.req});
 
+  Widget _badge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(6)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 10, color: AppColors.mutedForeground),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.foreground, fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => context.push('/service-provider/requests'),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.cardPadding),
         decoration: BoxDecoration(
           color: AppColors.card,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
         ),
-        child: Row(children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withAlpha(20),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            ),
-            child: Icon(LucideIcons.briefcase, size: 20, color: AppColors.primary),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.blue.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: Text('Organizer Request', style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: req.status == 'Quote Requested' ? AppColors.warning.withAlpha(25) : AppColors.success.withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      req.status,
+                      style: TextStyle(
+                        color: req.status == 'Quote Requested' ? AppColors.warning : AppColors.success,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(req.categoryName, style: TextStyle(color: AppColors.foreground, fontSize: 15, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(req.eventName.isNotEmpty ? req.eventName : 'Event Details TBD', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _badge(LucideIcons.calendar, req.eventDate.isNotEmpty ? req.eventDate : 'TBD'),
+                  _badge(LucideIcons.indianRupee, 'Budget: ₹${req.budget.toInt()}'),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(req.categoryName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.foreground)),
-            const SizedBox(height: 2),
-            Text('Budget: ₹${req.budget.toInt()}  •  ${req.eventDate.isNotEmpty ? req.eventDate : "TBD"}',
-                style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-          ])),
-          EvStatusBadge(req.status.toLowerCase()),
-        ]),
+        ),
       ),
     );
   }
@@ -349,4 +399,82 @@ class _NavBtn extends StatelessWidget {
       child: Icon(icon, size: 16, color: AppColors.foreground),
     ),
   );
+}
+
+// ── Direct Booking Card ───────────────────────────────────────────────────────
+class _DirectBookingCard extends StatelessWidget {
+  final ServiceBooking booking;
+  const _DirectBookingCard({required this.booking});
+
+  Widget _badge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(6)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 10, color: AppColors.mutedForeground),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.foreground, fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/service-provider/requests'),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary, width: 1.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.purple.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: Text('Attendee Booking', style: TextStyle(color: Colors.purple, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      booking.status,
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text('${booking.serviceName} • ${booking.packageName}', style: TextStyle(color: AppColors.foreground, fontSize: 15, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(booking.eventName.isNotEmpty ? booking.eventName : 'Event Details TBD', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _badge(LucideIcons.calendar, booking.eventDate.isNotEmpty ? booking.eventDate : 'TBD'),
+                  _badge(LucideIcons.indianRupee, 'Paid: ₹${booking.total.toInt()}'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

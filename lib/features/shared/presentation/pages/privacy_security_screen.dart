@@ -448,7 +448,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             )
           else
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening detailed privacy policy...')));
+              },
               child: Text('Revoke', style: TextStyle(color: AppColors.destructive, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
         ],

@@ -221,7 +221,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     _buildUpiItem('PhonePe', 'rahul@ybl', '🟣'),
                     const SizedBox(height: 8),
                     InkWell(
-                      onTap: () {},
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add Card form coming soon...')));
+                      },
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         width: double.infinity,
@@ -246,7 +248,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     Text('Net Banking', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
                     const SizedBox(height: 12),
                     InkWell(
-                      onTap: () {},
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add UPI/Wallet form coming soon...')));
+                      },
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         width: double.infinity,

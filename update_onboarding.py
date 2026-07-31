@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import os
+
+content = """import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -94,7 +96,7 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
                           Navigator.pop(context);
                         },
                       )),
-                      Divider(color: AppColors.border),
+                      const Divider(color: AppColors.border),
                     ],
                   );
                 },
@@ -190,17 +192,17 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
               children: [
                 Container(
                   width: 80, height: 80,
-                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 40, spreadRadius: 8)]),
+                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 40, spreadRadius: 8)]),
                   child: Icon(LucideIcons.checkCircle2, size: 40, color: AppColors.primaryForeground),
                 ),
                 const SizedBox(height: 24),
-                Text('You\'re Onboard!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                Text('You\\'re Onboard!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.foreground)),
                 const SizedBox(height: 8),
                 Text('Welcome to the Eventra Service Provider network. Start receiving booking requests right away.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: AppColors.mutedForeground)),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(color: Colors.teal.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -242,11 +244,8 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
             child: Icon(LucideIcons.arrowLeft, size: 20, color: AppColors.foreground),
           ),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              Future.microtask(() => context.go('/'));
-            }
+            if (context.canPop()) context.pop();
+            else Future.microtask(() => context.go('/'));
           },
         ),
         title: Text('Become a Service Provider', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -261,7 +260,7 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.2), blurRadius: 20, spreadRadius: 4)],
+                boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 20, spreadRadius: 4)],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,7 +269,7 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
                   const SizedBox(height: 8),
                   Text('List your service or venue', style: TextStyle(color: AppColors.primaryForeground, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text('Reach thousands of event organizers. Just tell us what you offer and start accepting bookings.', style: TextStyle(color: AppColors.primaryForeground.withValues(alpha: 0.8), fontSize: 12)),
+                  Text('Reach thousands of event organizers. Just tell us what you offer and start accepting bookings.', style: TextStyle(color: AppColors.primaryForeground.withOpacity(0.8), fontSize: 12)),
                 ],
               ),
             ),
@@ -321,7 +320,7 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
             ),
             
             if (_selectedCategory != null) ...[
-              Divider(color: AppColors.border, height: 40),
+              const Divider(color: AppColors.border, height: 40),
               Text(isVenue ? 'VENUE DETAILS' : 'SERVICE DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
               const SizedBox(height: 16),
               
@@ -358,3 +357,9 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
     );
   }
 }
+"""
+
+with open(r'd:\company-work\eventra\lib\features\service_provider\presentation\pages\service_provider_onboarding_screen.dart', 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print("Onboarding screen updated")

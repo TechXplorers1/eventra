@@ -158,6 +158,12 @@ class AppNotifier extends Notifier<AppState> {
   void setCity(String city) => state = state.copyWith(selectedCity: city);
 
   // ─── Events ──────────────────────────────────────────────────────────────────
+  void updateEvent(EventData newEvent) {
+    state = state.copyWith(
+      publishedEvents: state.publishedEvents.map((e) => e.id == newEvent.id ? newEvent : e).toList(),
+    );
+  }
+
   void publishEvent(EventData event) {
     state = state.copyWith(
       publishedEvents: [...state.publishedEvents, event],
@@ -390,13 +396,9 @@ class AppNotifier extends Notifier<AppState> {
 
   void registerServiceProvider(ServiceProviderProfile profile) {
     state = state.copyWith(
-      serviceProvider: ServiceProviderProfile(
-        registered: true,
+      serviceProvider: profile.copyWith(
         status: 'unverified',
-        fullName: profile.fullName,
-        businessName: profile.businessName,
         vendorId: profile.vendorId.isNotEmpty ? profile.vendorId : 'v1',
-        serviceCategory: profile.serviceCategory,
         rating: '4.8',
         totalGigs: 24,
         totalRevenue: 182000.0,

@@ -142,6 +142,9 @@ class VenueData {
   final double rating;
   final String imageUrl;
   final List<String> amenities;
+  final String venueType;
+  final String seatingLayout;
+  final List<SeatSection> seatingLayouts;
   final String description;
 
   const VenueData({
@@ -154,6 +157,9 @@ class VenueData {
     required this.rating,
     required this.imageUrl,
     this.amenities = const [],
+    this.venueType = '',
+    this.seatingLayout = '',
+    this.seatingLayouts = const [],
     this.description = '',
   });
 }
@@ -417,6 +423,9 @@ class ServiceProviderProfile {
   final int capacity;
   final String address;
   final List<String> amenities;
+  final String venueType;
+  final String seatingLayout;
+  final List<SeatSection> seatingLayouts;
 
   // Caterer-specific
   final List<String> menuTypes;
@@ -443,6 +452,9 @@ class ServiceProviderProfile {
     this.capacity = 0,
     this.address = '',
     this.amenities = const [],
+    this.venueType = '',
+    this.seatingLayout = '',
+    this.seatingLayouts = const [],
     this.menuTypes = const [],
     this.maxGuests = 0,
   });
@@ -474,6 +486,9 @@ class ServiceProviderProfile {
     int? capacity,
     String? address,
     List<String>? amenities,
+    String? venueType,
+    String? seatingLayout,
+    List<SeatSection>? seatingLayouts,
     List<String>? menuTypes,
     int? maxGuests,
   }) {
@@ -498,8 +513,81 @@ class ServiceProviderProfile {
       capacity: capacity ?? this.capacity,
       address: address ?? this.address,
       amenities: amenities ?? this.amenities,
+      venueType: venueType ?? this.venueType,
+      seatingLayout: seatingLayout ?? this.seatingLayout,
+      seatingLayouts: seatingLayouts ?? this.seatingLayouts,
       menuTypes: menuTypes ?? this.menuTypes,
       maxGuests: maxGuests ?? this.maxGuests,
+    );
+  }
+}
+
+class SeatSection {
+  final String id;
+  final String name;
+  final double price;
+  final int colorHex;
+  final int rows;
+  final int seatsPerRow;
+  final int available;
+  final List<String> disabledSeats;
+
+  const SeatSection({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.colorHex,
+    required this.rows,
+    required this.seatsPerRow,
+    required this.available,
+    this.disabledSeats = const [],
+  });
+
+  SeatSection copyWith({
+    String? id,
+    String? name,
+    double? price,
+    int? colorHex,
+    int? rows,
+    int? seatsPerRow,
+    int? available,
+    List<String>? disabledSeats,
+  }) {
+    return SeatSection(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      colorHex: colorHex ?? this.colorHex,
+      rows: rows ?? this.rows,
+      seatsPerRow: seatsPerRow ?? this.seatsPerRow,
+      available: available ?? this.available,
+      disabledSeats: disabledSeats ?? this.disabledSeats,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'colorHex': colorHex,
+      'rows': rows,
+      'seatsPerRow': seatsPerRow,
+      'available': available,
+      'disabledSeats': disabledSeats,
+    };
+  }
+
+  factory SeatSection.fromJson(Map<String, dynamic> json) {
+    return SeatSection(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      price: json['price']?.toDouble() ?? 0.0,
+      colorHex: json['colorHex'] ?? 0xFF000000,
+      rows: json['rows'] ?? 0,
+      seatsPerRow: json['seatsPerRow'] ?? 0,
+      available: json['available'] ?? 0,
+      disabledSeats: List<String>.from(json['disabledSeats'] ?? []),
     );
   }
 }

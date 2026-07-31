@@ -74,7 +74,7 @@ class ProfileScreen extends ConsumerWidget {
                           EvBadge(label: 'Attendee', color: AppColors.primary),
                         ]),
                       ),
-                      _IconBtn(icon: LucideIcons.pencil, onTap: () {}),
+                      _IconBtn(icon: LucideIcons.pencil, onTap: () => _showEditProfile(context)),
                     ],
                   ),
                 ),
@@ -113,7 +113,7 @@ class ProfileScreen extends ConsumerWidget {
                 _SectionLabel('Support'),
                 _MenuGroup([
                   _MenuItem(LucideIcons.helpCircle, 'Help & Support', 'FAQs, chat & contact', () => context.push('/help')),
-                  _MenuItem(LucideIcons.messageSquare, 'Send Feedback', 'Share your thoughts', () {}),
+                  _MenuItem(LucideIcons.messageSquare, 'Send Feedback', 'Share your thoughts', () => _showFeedback(context)),
                 ]),
                 const SizedBox(height: AppSpacing.sectionSpacing),
 
@@ -127,6 +127,120 @@ class ProfileScreen extends ConsumerWidget {
           const BottomNav(),
         ],
       ),
+    );
+  }
+
+  void _showEditProfile(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: AppSpacing.pagePaddingH,
+            right: AppSpacing.pagePaddingH,
+            top: AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+              const SizedBox(height: 16),
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Full Name',
+                  hintText: 'Enter your name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Mobile Number',
+                  hintText: '+91 ...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Profile updated successfully!')),
+                    );
+                  },
+                  child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFeedback(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: AppSpacing.pagePaddingH,
+            right: AppSpacing.pagePaddingH,
+            top: AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Send Feedback', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+              const SizedBox(height: 16),
+              TextField(
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Tell us how we can improve...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Thank you for your feedback!')),
+                    );
+                  },
+                  child: const Text('Submit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 }

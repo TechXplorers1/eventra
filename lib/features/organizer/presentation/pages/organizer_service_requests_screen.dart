@@ -164,7 +164,9 @@ class OrganizerServiceRequestsScreen extends ConsumerWidget {
                                       children: [
                                         Expanded(
                                           child: ElevatedButton(
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit Request functionality coming soon!')));
+                                            },
                                             style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: AppColors.foreground, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
                                             child: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                           ),

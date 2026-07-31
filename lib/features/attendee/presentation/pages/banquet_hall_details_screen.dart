@@ -307,7 +307,9 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                             Row(
                               children: [
                                 InkWell(
-                                  onTap: () {},
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied to clipboard')));
+                                  },
                                   child: Container(
                                     width: 40, height: 40,
                                     decoration: BoxDecoration(color: AppColors.background.withOpacity(0.6), shape: BoxShape.circle),
@@ -451,7 +453,9 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening 360° Virtual Tour...')));
+                        },
                         icon: Icon(LucideIcons.compass, size: 14, color: AppColors.primary),
                         label: Text('Launch 360° Virtual Tour', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(

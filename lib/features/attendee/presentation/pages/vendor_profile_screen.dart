@@ -115,7 +115,9 @@ class VendorProfileScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 InkWell(
-                                  onTap: () {},
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied to clipboard')));
+                                  },
                                   child: Container(
                                     width: 40, height: 40,
                                     decoration: BoxDecoration(color: AppColors.background.withOpacity(0.4), shape: BoxShape.circle),
@@ -230,7 +232,9 @@ class VendorProfileScreen extends ConsumerWidget {
                               return Padding(
                                 padding: const EdgeInsets.only(right: 12),
                                 child: InkWell(
-                                  onTap: () {}, // Action to open link
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening ${entry.key[0].toUpperCase() + entry.key.substring(1)}...')));
+                                  }, // Action to open link
                                   child: Row(
                                     children: [
                                       Icon(iconData, size: 14, color: AppColors.primary),
@@ -391,7 +395,9 @@ class VendorProfileScreen extends ConsumerWidget {
                   Expanded(
                     flex: 1,
                     child: ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Calling vendor...')));
+                      },
                       icon: Icon(LucideIcons.phone, size: 16),
                       label: Text('Contact'),
                       style: ElevatedButton.styleFrom(

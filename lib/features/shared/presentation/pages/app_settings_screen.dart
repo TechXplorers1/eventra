@@ -418,7 +418,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   Widget _buildLegalItem(IconData icon, String label, bool bottomBorder) {
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Checking for updates...')));
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(border: bottomBorder ? Border(bottom: BorderSide(color: AppColors.border)) : null),

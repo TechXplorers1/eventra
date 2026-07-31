@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/data/mock_data.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/app_provider.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends ConsumerWidget {
   final String id;
   const EventDetailsScreen({super.key, required this.id});
 
   @override
-  Widget build(BuildContext context) {
-    // Direct mockEvents lookup — no provider/Riverpod (avoids rebuild collapse bug on Flutter Web)
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Use appProvider.allEvents so organizer-published events are visible too
+    final allEvents = ref.watch(appProvider).allEvents;
     EventData? ev;
-    for (final e in mockEvents) {
+    for (final e in allEvents) {
       if (e.id == id) { ev = e; break; }
     }
 
@@ -260,7 +263,27 @@ class EventDetailsScreen extends StatelessWidget {
             ),
             const Spacer(),
             GestureDetector(
-              onTap: () => context.push('/seats/${ev!.id}'),
+              onTap: () {
+                // If event has seating layout, go to seat picker; otherwise go direct to order summary (general admission)
+                if (ev!.seatingLayouts.isNotEmpty) {
+                  context.push('/seats/${ev.id}');
+                } else {
+                  context.push('/order-summary', extra: {
+                    'eventId': ev.id,
+                    'eventTitle': ev.title,
+                    'eventDate': ev.date,
+                    'eventTime': ev.time,
+                    'eventVenue': ev.venue,
+                    'eventCity': ev.city,
+                    'eventImageKey': ev.imageKey,
+                    'sectionName': 'General Admission',
+                    'seatCount': 1,
+                    'seats': <String>[],
+                    'pricePerSeat': ev.price,
+                    'totalPrice': ev.price,
+                  });
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 15),
                 decoration: BoxDecoration(
