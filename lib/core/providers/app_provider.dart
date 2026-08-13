@@ -281,9 +281,43 @@ class AppNotifier extends Notifier<AppState> {
     );
   }
 
+  void removeBooking(String ticketId) {
+    state = state.copyWith(
+      bookedTickets: state.bookedTickets.where((t) => t.id != ticketId).toList(),
+      notifications: [
+        AppNotification(
+          id: 'N${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Booking Cancelled',
+          body: 'Your ticket booking has been cancelled and refund initiated.',
+          type: 'booking',
+          time: 'Just now',
+          isRead: false,
+        ),
+        ...state.notifications,
+      ],
+    );
+  }
+
   void addServiceBooking(ServiceBooking booking) {
     state = state.copyWith(
         serviceBookings: [...state.serviceBookings, booking]);
+  }
+
+  void removeServiceBooking(String bookingId) {
+    state = state.copyWith(
+        serviceBookings: state.serviceBookings.where((b) => b.id != bookingId).toList(),
+        notifications: [
+          AppNotification(
+            id: 'N${DateTime.now().millisecondsSinceEpoch}',
+            title: 'Service Cancelled',
+            body: 'Your service booking has been cancelled and refund initiated.',
+            type: 'booking',
+            time: 'Just now',
+            isRead: false,
+          ),
+          ...state.notifications,
+        ],
+    );
   }
 
   // ─── Service Requests ────────────────────────────────────────────────────────

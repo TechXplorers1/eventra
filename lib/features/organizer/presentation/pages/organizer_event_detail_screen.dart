@@ -955,6 +955,21 @@ class _OrganizerEventDetailScreenState extends ConsumerState<OrganizerEventDetai
   }
 
   Widget _buildTicketsTab(List<BookedTicket> eventTickets, EventData event) {
+    final guestListBtn = SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => context.push('/organizer/event/${event.id}/guests'),
+        icon: const Icon(LucideIcons.users),
+        label: const Text('Manage Guest List (Check-in)', style: TextStyle(fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.primaryForeground,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+
     if (event.seatingLayouts.isNotEmpty) {
       if (_activeSeatSection == null) {
         // Initialize with first section
@@ -966,6 +981,8 @@ class _OrganizerEventDetailScreenState extends ConsumerState<OrganizerEventDetai
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          guestListBtn,
+          const SizedBox(height: 24),
           // Section Tabs
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -999,16 +1016,25 @@ class _OrganizerEventDetailScreenState extends ConsumerState<OrganizerEventDetai
     }
 
     if (eventTickets.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Center(child: Text(
-          'No tickets booked yet for this event.',
-          style: TextStyle(fontSize: 13, color: AppColors.mutedForeground),
-        )),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          guestListBtn,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: Text(
+              'No tickets booked yet for this event.',
+              style: TextStyle(fontSize: 13, color: AppColors.mutedForeground),
+            )),
+          ),
+        ],
       );
     }
     return Column(
-      children: eventTickets.map((t) => Container(
+      children: [
+        guestListBtn,
+        const SizedBox(height: 24),
+        ...eventTickets.map((t) => Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
@@ -1040,6 +1066,7 @@ class _OrganizerEventDetailScreenState extends ConsumerState<OrganizerEventDetai
           ],
         ),
       )).toList(),
+      ],
     );
   }
 

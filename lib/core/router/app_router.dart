@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/pages/splash_screen.dart';
 import '../../features/auth/presentation/pages/login_screen.dart';
+import '../../features/auth/presentation/pages/signup_screen.dart';
+import '../../features/auth/presentation/pages/otp_verification_screen.dart';
+import '../../features/auth/presentation/pages/forgot_password_screen.dart';
 import '../../features/auth/presentation/pages/role_select_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_onboarding_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_onboarding_screen.dart';
@@ -16,6 +19,8 @@ import '../../features/attendee/presentation/pages/seat_selection_screen.dart';
 import '../../features/attendee/presentation/pages/order_summary_screen.dart';
 import '../../features/attendee/presentation/pages/payment_screen.dart';
 import '../../features/attendee/presentation/pages/booking_success_screen.dart';
+import '../../features/attendee/presentation/pages/cancel_booking_screen.dart';
+import '../../features/attendee/presentation/pages/refund_status_screen.dart';
 import '../../features/attendee/presentation/pages/services_marketplace_screen.dart';
 import '../../features/attendee/presentation/pages/service_vendors_screen.dart';
 import '../../features/attendee/presentation/pages/vendor_profile_screen.dart';
@@ -34,6 +39,7 @@ import '../../features/organizer/presentation/pages/organizer_service_requests_s
 import '../../features/organizer/presentation/pages/organizer_service_providers_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_service_provider_details_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_invite_screen.dart';
+import '../../features/organizer/presentation/pages/guest_list_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_dashboard_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_requests_screen.dart';
 import '../../features/service_provider/presentation/pages/service_provider_calendar_screen.dart';
@@ -47,6 +53,8 @@ import '../../features/shared/presentation/pages/notifications_screen.dart';
 import '../../features/shared/presentation/pages/payment_methods_screen.dart';
 import '../../features/shared/presentation/pages/help_support_screen.dart';
 import '../../features/shared/presentation/pages/settings_screen.dart';
+import '../../features/shared/presentation/pages/write_review_screen.dart';
+import '../../features/shared/presentation/pages/dispute_resolution_screen.dart';
 import '../providers/app_provider.dart';
 import '../models/app_models.dart';
 
@@ -95,7 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final app = ref.read(appProvider);
       final path = state.uri.toString();
 
-      if (!app.isLoggedIn && path != '/login' && path != '/') {
+      if (!app.isLoggedIn && path != '/login' && path != '/' && path != '/signup' && path != '/forgot-password' && !path.startsWith('/otp-verification')) {
         return '/login';
       }
 
@@ -133,6 +141,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ── Auth ─────────────────────────────────────────────────────────────
       GoRoute(path: '/',            builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login',       builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/signup',      builder: (_, __) => const SignupScreen()),
+      GoRoute(
+        path: '/otp-verification/:phone',
+        builder: (_, s) => OtpVerificationScreen(phone: s.pathParameters['phone'] ?? ''),
+      ),
+      GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: '/role-select', builder: (_, __) => const RoleSelectScreen()),
       GoRoute(
         path: '/organizer/onboarding',
@@ -179,6 +193,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) =>
             BookingSuccessScreen(bookingData: s.extra as Map<String, dynamic>),
       ),
+      GoRoute(
+        path: '/cancel-booking/:type/:id',
+        builder: (_, s) => CancelBookingScreen(
+          bookingType: s.pathParameters['type']!,
+          bookingId: s.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/refund-status/:id',
+        builder: (_, s) {
+          final extra = s.extra as Map<String, dynamic>? ?? {};
+          return RefundStatusScreen(
+            bookingId: s.pathParameters['id']!,
+            amount: extra['amount'] ?? 0.0,
+            entityName: extra['entityName'] ?? 'Booking',
+            type: extra['type'] ?? 'ticket',
+          );
+        },
+      ),
 
       // Services marketplace
       GoRoute(path: '/services', builder: (_, __) => const ServicesMarketplaceScreen()),
@@ -215,6 +248,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             OrganizerEventDetailScreen(eventId: s.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/organizer/event/:id/guests',
+        builder: (_, s) =>
+            GuestListScreen(eventId: s.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/organizer/invite/:eventId',
         builder: (_, s) => OrganizerInviteScreen(
           eventId: s.pathParameters['eventId']!,
@@ -243,6 +281,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/payment-methods', builder: (_, __) => const PaymentMethodsScreen()),
       GoRoute(path: '/help',            builder: (_, __) => const HelpSupportScreen()),
       GoRoute(path: '/settings',        builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: '/write-review/:id', builder: (_, s) => WriteReviewScreen(id: s.pathParameters['id']!)),
+      GoRoute(path: '/dispute/:id',      builder: (_, s) => DisputeResolutionScreen(id: s.pathParameters['id']!)),
 
       // ── Legacy redirects ─────────────────────────────────────────────────
       GoRoute(path: '/help-support',       redirect: (_, __) => '/help'),

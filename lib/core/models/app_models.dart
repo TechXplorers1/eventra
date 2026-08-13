@@ -203,6 +203,7 @@ class ServiceBooking {
   final String serviceId;
   final String vendorId;
   final String vendorName;
+  final String vendorPhone;
   final String serviceName;
   final String packageName;
   final double servicePrice;
@@ -229,6 +230,7 @@ class ServiceBooking {
     required this.serviceId,
     this.vendorId = '',
     required this.vendorName,
+    this.vendorPhone = '',
     required this.serviceName,
     required this.packageName,
     this.servicePrice = 0.0,
@@ -257,6 +259,7 @@ class ServiceBooking {
       serviceId: serviceId,
       vendorId: vendorId,
       vendorName: vendorName,
+      vendorPhone: vendorPhone,
       serviceName: serviceName,
       packageName: packageName,
       servicePrice: servicePrice,
@@ -292,6 +295,7 @@ class ServiceRequest {
   final DateTime createdAt;
   final String? vendorId;
   final String? vendorName;
+  final String vendorPhone;
   final double? vendorPrice;
   final String eventId;
   final String eventName;
@@ -311,6 +315,7 @@ class ServiceRequest {
     required this.createdAt,
     this.vendorId,
     this.vendorName,
+    this.vendorPhone = '',
     this.vendorPrice,
     this.eventId = '',
     this.eventName = '',
@@ -322,6 +327,7 @@ class ServiceRequest {
     String? status,
     String? vendorId,
     String? vendorName,
+    String? vendorPhone,
     double? vendorPrice,
     int? quotes,
   }) {
@@ -338,6 +344,7 @@ class ServiceRequest {
       createdAt: createdAt,
       vendorId: vendorId ?? this.vendorId,
       vendorName: vendorName ?? this.vendorName,
+      vendorPhone: vendorPhone ?? this.vendorPhone,
       vendorPrice: vendorPrice ?? this.vendorPrice,
       eventId: eventId,
       eventName: eventName,
