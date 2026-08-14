@@ -1,24 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../core/models/app_models.dart';
-
-class _RoleOption {
-  final Role id;
-  final String title;
-  final String desc;
-  final IconData icon;
-
-  const _RoleOption(this.id, this.title, this.desc, this.icon);
-}
-
-const _roles = [
-  _RoleOption(Role.attendee, 'Event Attendee', 'Discover, book and attend events. Hire trusted services for your own occasions.', LucideIcons.user),
-  _RoleOption(Role.organizer, 'Event Organizer', 'Create, manage and sell tickets for public events. Run private functions.', LucideIcons.megaphone),
-  _RoleOption(Role.service, 'Eventra Service Provider', 'Offer photography, catering, DJ, venues and more to Eventra customers.', LucideIcons.briefcase),
-];
 
 class RoleSelectScreen extends ConsumerStatefulWidget {
   const RoleSelectScreen({super.key});
@@ -28,174 +14,228 @@ class RoleSelectScreen extends ConsumerStatefulWidget {
 }
 
 class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
-  Role? _selectedRole;
-  bool _showConfirm = false;
+  final PageController _pageController = PageController(viewportFraction: 0.85);
+  int _currentIndex = 0;
+  bool _isLoading = false;
 
-  void _confirm() {
-    if (_selectedRole == null) return;
-    ref.read(appProvider.notifier).setRole(_selectedRole!);
-    // Router will automatically redirect
+  final List<Map<String, dynamic>> _roles = [
+    {
+      'id': Role.attendee,
+      'title': 'Attendee',
+      'subtitle': 'Discover events, buy tickets, and experience the extraordinary.',
+      'icon': LucideIcons.ticket,
+      'color': Colors.blueAccent,
+    },
+    {
+      'id': Role.organizer,
+      'title': 'Organizer',
+      'subtitle': 'Create, manage, and host incredible events effortlessly.',
+      'icon': LucideIcons.calendarCheck2,
+      'color': Colors.deepPurpleAccent,
+    },
+    {
+      'id': Role.service,
+      'title': 'Service Provider',
+      'subtitle': 'Offer venues, catering, equipment, and services to organizers.',
+      'icon': LucideIcons.store,
+      'color': Colors.teal,
+    },
+  ];
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _handleRoleSelect(Role roleId) {
+    setState(() => _isLoading = true);
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (!mounted) return;
+      ref.read(appProvider.notifier).setRole(roleId);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final mobile = ref.watch(appProvider).mobile;
-
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(LucideIcons.sparkles, size: 18, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text('WELCOME TO EVENTRA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: 2)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text('Who Are You?', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.foreground)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Choose how you want to use Eventra. Your role is permanent and cannot be switched later.',
-                    style: TextStyle(fontSize: 14, color: AppColors.mutedForeground),
-                  ),
-                  if (mobile.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    RichText(
-                      text: TextSpan(
-                        text: 'Signed in as ',
-                        style: TextStyle(fontSize: 11, color: AppColors.mutedForeground),
-                        children: [
-                          TextSpan(text: mobile, style: TextStyle(color: AppColors.foreground, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: _roles.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final r = _roles[index];
-                        return InkWell(
-                          onTap: () => setState(() {
-                            _selectedRole = r.id;
-                            _showConfirm = true;
-                          }),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 10, spreadRadius: 2),
-                                    ],
-                                  ),
-                                  child: Icon(r.icon, color: AppColors.primaryForeground, size: 22),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(r.title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                                      const SizedBox(height: 4),
-                                      Text(r.desc, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Icon(LucideIcons.chevronRight, size: 18, color: AppColors.mutedForeground),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Each Eventra account belongs to a single role. To use a different role, sign up with another mobile number.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 10, color: AppColors.mutedForeground),
-                  ),
+          // Background Gradient matching the current card
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.5),
+                radius: 1.5,
+                colors: [
+                  _roles[_currentIndex]['color'].withOpacity(0.3),
+                  Colors.black,
                 ],
               ),
             ),
           ),
-          if (_showConfirm && _selectedRole != null) ...[
-            Container(color: Colors.black.withOpacity(0.8)),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.alertCircle, color: AppColors.primary, size: 22),
-                      ),
-                      const SizedBox(height: 16),
-                      Text('Confirm Your Role', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                      const SizedBox(height: 8),
-                      Text("You're joining Eventra as a", style: TextStyle(fontSize: 14, color: AppColors.mutedForeground)),
-                      const SizedBox(height: 4),
-                      Text(_roles.firstWhere((r) => r.id == _selectedRole).title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                      const SizedBox(height: 16),
-                      Text('This choice is permanent. You won\'t be able to switch roles from this account.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => setState(() => _showConfirm = false),
-                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.muted, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 16)),
-                              child: Text('Cancel', style: TextStyle(color: AppColors.foreground)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _confirm,
-                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 16)),
-                              child: Text('Confirm', style: TextStyle(color: AppColors.primaryForeground, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+          
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 48),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    'Choose Your Path',
+                    style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    'How would you like to use Eventra today?',
+                    style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7)),
+                  ),
+                ),
+                const SizedBox(height: 48),
+                
+                // Carousel
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) => setState(() => _currentIndex = index),
+                    itemCount: _roles.length,
+                    itemBuilder: (context, index) {
+                      final role = _roles[index];
+                      final isSelected = _currentIndex == index;
+                      
+                      return AnimatedScale(
+                        scale: isSelected ? 1.0 : 0.9,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutBack,
+                        child: AnimatedOpacity(
+                          opacity: isSelected ? 1.0 : 0.5,
+                          duration: const Duration(milliseconds: 300),
+                          child: GestureDetector(
+                            onTap: () {
+                              if (!isSelected) {
+                                _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                              }
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.card,
+                                borderRadius: BorderRadius.circular(32),
+                                border: Border.all(color: isSelected ? role['color'] : AppColors.border.withOpacity(0.5), width: isSelected ? 2 : 1),
+                                boxShadow: isSelected ? [
+                                  BoxShadow(color: role['color'].withOpacity(0.2), blurRadius: 40, offset: const Offset(0, 20))
+                                ] : [],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(32),
+                                child: Stack(
+                                  children: [
+                                    // Abstract shape in card
+                                    Positioned(
+                                      top: -50, right: -50,
+                                      child: Container(
+                                        width: 200, height: 200,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: RadialGradient(
+                                            colors: [role['color'].withOpacity(0.2), Colors.transparent],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(32),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: role['color'].withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Icon(role['icon'], size: 48, color: role['color']),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            role['title'],
+                                            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.foreground, letterSpacing: -0.5),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            role['subtitle'],
+                                            style: TextStyle(fontSize: 16, color: AppColors.mutedForeground, height: 1.4),
+                                          ),
+                                          const SizedBox(height: 32),
+                                          
+                                          // Action Button inside card
+                                          InkWell(
+                                            onTap: isSelected ? () => _handleRoleSelect(role['id']) : null,
+                                            borderRadius: BorderRadius.circular(16),
+                                            child: Container(
+                                              height: 64,
+                                              decoration: BoxDecoration(
+                                                color: role['color'],
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: Center(
+                                                child: _isLoading && isSelected
+                                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                                    : Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          const Text('Continue as ', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                                                          Text(role['title'], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                                                          const SizedBox(width: 8),
+                                                          const Icon(LucideIcons.arrowRight, color: Colors.white, size: 20),
+                                                        ],
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
+                // Page Indicators
+                Padding(
+                  padding: const EdgeInsets.only(top: 32, bottom: 48),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_roles.length, (index) {
+                      final isSelected = _currentIndex == index;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 6,
+                        width: isSelected ? 24 : 6,
+                        decoration: BoxDecoration(
+                          color: isSelected ? _roles[_currentIndex]['color'] : Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );

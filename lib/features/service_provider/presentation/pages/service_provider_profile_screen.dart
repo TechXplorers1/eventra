@@ -104,7 +104,10 @@ class ServiceProviderProfileScreen extends ConsumerWidget {
                       _heroDivider(),
                       _HeroStat(value: '$confirmed', label: 'Active', icon: LucideIcons.zap),
                       _heroDivider(),
-                      _HeroStat(value: '${sp.experienceYears}y', label: 'Experience', icon: LucideIcons.award),
+                      if (sp.venueType.isNotEmpty || sp.capacity > 0)
+                        _HeroStat(value: '${sp.capacity}', label: 'Capacity', icon: LucideIcons.users)
+                      else
+                        _HeroStat(value: '${sp.experienceYears}y', label: 'Experience', icon: LucideIcons.award),
                     ]),
                   ]),
                 ),
@@ -124,6 +127,25 @@ class ServiceProviderProfileScreen extends ConsumerWidget {
                         Text(sp.bio, style: TextStyle(fontSize: 13, color: AppColors.mutedForeground, height: 1.5)),
                         const SizedBox(height: 8),
                       ],
+                      if (sp.address.isNotEmpty) ...[
+                        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Icon(LucideIcons.map, size: 14, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Expanded(child: Text(sp.address, style: TextStyle(fontSize: 12, color: AppColors.mutedForeground))),
+                        ]),
+                        const SizedBox(height: 8),
+                      ],
+                      if (sp.amenities.isNotEmpty) ...[
+                        Wrap(
+                          spacing: 6, runSpacing: 6,
+                          children: sp.amenities.map((a) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(12)),
+                            child: Text(a, style: TextStyle(fontSize: 10, color: AppColors.foreground)),
+                          )).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       if (sp.city.isNotEmpty)
                         Row(children: [
                           Icon(LucideIcons.mapPin, size: 12, color: AppColors.mutedForeground),
@@ -137,6 +159,38 @@ class ServiceProviderProfileScreen extends ConsumerWidget {
                                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.foreground)),
                           ],
                         ]),
+                      if (sp.socialLinks.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Divider(height: 1, color: AppColors.border),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: sp.socialLinks.entries.map((entry) {
+                            IconData iconData;
+                            switch (entry.key) {
+                              case 'instagram': iconData = LucideIcons.instagram; break;
+                              case 'facebook': iconData = LucideIcons.facebook; break;
+                              case 'twitter': iconData = LucideIcons.twitter; break;
+                              case 'website': iconData = LucideIcons.globe; break;
+                              default: iconData = LucideIcons.link;
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: InkWell(
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening ${entry.key[0].toUpperCase() + entry.key.substring(1)}...')));
+                                },
+                                child: Row(
+                                  children: [
+                                    Icon(iconData, size: 14, color: AppColors.primary),
+                                    const SizedBox(width: 4),
+                                    Text(entry.key[0].toUpperCase() + entry.key.substring(1), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ]),
                   ),
                 const SizedBox(height: AppSpacing.sectionSpacing),
@@ -146,6 +200,8 @@ class ServiceProviderProfileScreen extends ConsumerWidget {
                 _MenuGroup([
                   _MenuItem(LucideIcons.image,       'Portfolio',  'Photos, videos and past work',   () => context.push('/service-provider/portfolio')),
                   _MenuItem(LucideIcons.package,     'Packages',   'Manage pricing and packages',     () => context.push('/service-provider/packages')),
+                  if (sp.venueType.isNotEmpty || sp.capacity > 0)
+                    _MenuItem(LucideIcons.layoutGrid,  'Seating Layout', 'Define physical seating areas', () => context.push('/service-provider/seating')),
                   _MenuItem(LucideIcons.star,        'Reviews',    'Client feedback and ratings',     () => context.push('/service-provider/reviews')),
                 ]),
                 const SizedBox(height: AppSpacing.sectionSpacing),

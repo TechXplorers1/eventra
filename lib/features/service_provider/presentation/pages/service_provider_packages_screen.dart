@@ -169,7 +169,13 @@ class _ServiceProviderPackagesScreenState extends ConsumerState<ServiceProviderP
                     child: Row(
                       children: [
                         InkWell(
-                          onTap: () => context.pop(),
+                          onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                           borderRadius: BorderRadius.circular(20),
                           child: Container(
                             width: 36, height: 36,

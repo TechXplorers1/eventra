@@ -24,6 +24,9 @@ class AppState {
   final ServiceProviderProfile serviceProvider;
   // V1 — Invitation system
   final List<EventInvite> invitations;
+  // Calendar blocking
+  final List<String> blockedDates;        // 'yyyy-MM-dd'
+  final List<CalendarEntry> calendarEntries;
 
   AppState({
     required this.isLoggedIn,
@@ -45,6 +48,8 @@ class AppState {
     required this.organizer,
     required this.serviceProvider,
     this.invitations = const [],
+    this.blockedDates = const [],
+    this.calendarEntries = const [],
   });
 
   AppState copyWith({
@@ -68,6 +73,8 @@ class AppState {
     ServiceProviderProfile? serviceProvider,
     bool clearRole = false,
     List<EventInvite>? invitations,
+    List<String>? blockedDates,
+    List<CalendarEntry>? calendarEntries,
   }) {
     return AppState(
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
@@ -89,6 +96,8 @@ class AppState {
       organizer: organizer ?? this.organizer,
       serviceProvider: serviceProvider ?? this.serviceProvider,
       invitations: invitations ?? this.invitations,
+      blockedDates: blockedDates ?? this.blockedDates,
+      calendarEntries: calendarEntries ?? this.calendarEntries,
     );
   }
 
@@ -149,6 +158,12 @@ class AppNotifier extends Notifier<AppState> {
   void setCity(String city) => state = state.copyWith(selectedCity: city);
 
   // ─── Events ──────────────────────────────────────────────────────────────────
+  void updateEvent(EventData newEvent) {
+    state = state.copyWith(
+      publishedEvents: state.publishedEvents.map((e) => e.id == newEvent.id ? newEvent : e).toList(),
+    );
+  }
+
   void publishEvent(EventData event) {
     state = state.copyWith(
       publishedEvents: [...state.publishedEvents, event],
@@ -266,9 +281,43 @@ class AppNotifier extends Notifier<AppState> {
     );
   }
 
+  void removeBooking(String ticketId) {
+    state = state.copyWith(
+      bookedTickets: state.bookedTickets.where((t) => t.id != ticketId).toList(),
+      notifications: [
+        AppNotification(
+          id: 'N${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Booking Cancelled',
+          body: 'Your ticket booking has been cancelled and refund initiated.',
+          type: 'booking',
+          time: 'Just now',
+          isRead: false,
+        ),
+        ...state.notifications,
+      ],
+    );
+  }
+
   void addServiceBooking(ServiceBooking booking) {
     state = state.copyWith(
         serviceBookings: [...state.serviceBookings, booking]);
+  }
+
+  void removeServiceBooking(String bookingId) {
+    state = state.copyWith(
+        serviceBookings: state.serviceBookings.where((b) => b.id != bookingId).toList(),
+        notifications: [
+          AppNotification(
+            id: 'N${DateTime.now().millisecondsSinceEpoch}',
+            title: 'Service Cancelled',
+            body: 'Your service booking has been cancelled and refund initiated.',
+            type: 'booking',
+            time: 'Just now',
+            isRead: false,
+          ),
+          ...state.notifications,
+        ],
+    );
   }
 
   // ─── Service Requests ────────────────────────────────────────────────────────
@@ -281,6 +330,12 @@ class AppNotifier extends Notifier<AppState> {
     state = state.copyWith(
         serviceRequests:
             state.serviceRequests.where((r) => r.id != id).toList());
+  }
+
+  void updateServiceRequestStatus(String id, String status) {
+    state = state.copyWith(
+      serviceRequests: state.serviceRequests.map((r) => r.id == id ? r.copyWith(status: status) : r).toList(),
+    );
   }
 
   /// SP accepts a booking request — updates request status and credits SP wallet
@@ -330,6 +385,29 @@ class AppNotifier extends Notifier<AppState> {
     state = state.copyWith(serviceRequests: updated);
   }
 
+  // ─── Calendar ──────────────────────────────────────────────────────────────────────────
+  void toggleBlockDate(String dateKey) {
+    final current = List<String>.from(state.blockedDates);
+    if (current.contains(dateKey)) {
+      current.remove(dateKey);
+    } else {
+      current.add(dateKey);
+    }
+    state = state.copyWith(blockedDates: current);
+  }
+
+  void addCalendarEntry(CalendarEntry entry) {
+    state = state.copyWith(
+      calendarEntries: [...state.calendarEntries, entry],
+    );
+  }
+
+  void removeCalendarEntry(String id) {
+    state = state.copyWith(
+      calendarEntries: state.calendarEntries.where((e) => e.id != id).toList(),
+    );
+  }
+
   // ─── Profiles ────────────────────────────────────────────────────────────────
   void registerOrganizer(OrganizerProfile profile) {
     state = state.copyWith(
@@ -352,13 +430,9 @@ class AppNotifier extends Notifier<AppState> {
 
   void registerServiceProvider(ServiceProviderProfile profile) {
     state = state.copyWith(
-      serviceProvider: ServiceProviderProfile(
-        registered: true,
+      serviceProvider: profile.copyWith(
         status: 'unverified',
-        fullName: profile.fullName,
-        businessName: profile.businessName,
         vendorId: profile.vendorId.isNotEmpty ? profile.vendorId : 'v1',
-        serviceCategory: profile.serviceCategory,
         rating: '4.8',
         totalGigs: 24,
         totalRevenue: 182000.0,

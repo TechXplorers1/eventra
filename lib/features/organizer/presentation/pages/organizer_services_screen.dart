@@ -30,7 +30,13 @@ class _OrganizerServicesScreenState extends State<OrganizerServicesScreen> {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () => context.pop(),
+                    onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       width: 40, height: 40,
@@ -108,7 +114,7 @@ class _OrganizerServicesScreenState extends State<OrganizerServicesScreen> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.75,
+                  childAspectRatio: 1.6,
                 ),
                 itemCount: filteredCategories.length,
                 itemBuilder: (context, index) {

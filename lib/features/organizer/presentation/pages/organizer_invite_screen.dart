@@ -9,11 +9,17 @@ import '../../../../core/models/app_models.dart';
 class OrganizerInviteScreen extends ConsumerStatefulWidget {
   final String eventId;
   final String eventTitle;
+  final String eventDate;
+  final String eventVenue;
+  final String eventImageKey;
 
   const OrganizerInviteScreen({
     super.key,
     required this.eventId,
     required this.eventTitle,
+    required this.eventDate,
+    required this.eventVenue,
+    required this.eventImageKey,
   });
 
   @override
@@ -73,13 +79,13 @@ class _OrganizerInviteScreenState extends ConsumerState<OrganizerInviteScreen> {
         id: 'INV${DateTime.now().millisecondsSinceEpoch}$i',
         eventId: widget.eventId,
         eventTitle: widget.eventTitle,
-        eventDate: 'Upcoming',
-        eventVenue: 'See event details',
+        eventDate: widget.eventDate,
+        eventVenue: widget.eventVenue,
         organizerName: organizer.orgName.isNotEmpty ? organizer.orgName : organizer.fullName,
         contact: contacts[i],
         status: 'pending',
         sentAt: 'Just now',
-        eventImageKey: 'nightlife',
+        eventImageKey: widget.eventImageKey,
       );
       ref.read(appProvider.notifier).sendInvite(invite);
     }
@@ -118,7 +124,13 @@ class _OrganizerInviteScreenState extends ConsumerState<OrganizerInviteScreen> {
             decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
             child: Icon(LucideIcons.arrowLeft, size: 18, color: AppColors.foreground),
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

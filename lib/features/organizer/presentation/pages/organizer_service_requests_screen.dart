@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../core/data/services_marketplace_data.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
+import '../../../../core/utils/whatsapp_utils.dart';
 
 class OrganizerServiceRequestsScreen extends ConsumerWidget {
   const OrganizerServiceRequestsScreen({super.key});
@@ -35,7 +36,13 @@ class OrganizerServiceRequestsScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () => context.pop(),
+                    onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       width: 40, height: 40,
@@ -142,25 +149,79 @@ class OrganizerServiceRequestsScreen extends ConsumerWidget {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () {},
-                                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: AppColors.foreground, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                                      child: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              if (request.status == 'Cancelled')
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () => context.push('/organizer/services/providers/${request.categoryId}'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.primaryForeground, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                                        child: const Text('Find Another Provider', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () => ref.read(appProvider.notifier).removeServiceRequest(request.id),
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.1), foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                                      child: const Text('Cancel', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                )
+                              else if (request.status == 'Confirmed')
+                                  Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: ElevatedButton.icon(
+                                              onPressed: () => WhatsAppUtils.launchWhatsApp(context, request.vendorPhone, 'Hi, reaching out regarding my service request for ${request.eventName}'),
+                                              icon: const Icon(LucideIcons.messageCircle, size: 14),
+                                              label: const Text('Chat on WhatsApp', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              onPressed: () => context.push('/write-review/${request.id}'),
+                                              icon: Icon(LucideIcons.star, size: 12, color: AppColors.primary),
+                                              label: const Text('Write Review', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                              style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: BorderSide(color: AppColors.primary.withOpacity(0.5)), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              onPressed: () => context.push('/dispute/${request.id}'),
+                                              icon: Icon(LucideIcons.alertTriangle, size: 12, color: AppColors.destructive),
+                                              label: const Text('Report Issue', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                              style: OutlinedButton.styleFrom(foregroundColor: AppColors.destructive, side: BorderSide(color: AppColors.destructive.withOpacity(0.5)), padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                              else
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit Request functionality coming soon!')));
+                                        },
+                                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, foregroundColor: AppColors.foreground, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                                        child: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () => ref.read(appProvider.notifier).updateServiceRequestStatus(request.id, 'Cancelled'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.1), foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                                        child: const Text('Cancel', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                             ],
                           ),
                         );

@@ -28,7 +28,13 @@ class VendorProfileScreen extends ConsumerWidget {
               Text('Vendor not found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => context.pop(),
+                onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                 child: Text('Go back', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
               ),
             ],
@@ -84,7 +90,13 @@ class VendorProfileScreen extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             InkWell(
-                              onTap: () => context.pop(),
+                              onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                               child: Container(
                                 width: 40, height: 40,
                                 decoration: BoxDecoration(color: AppColors.background.withOpacity(0.4), shape: BoxShape.circle),
@@ -103,7 +115,9 @@ class VendorProfileScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 InkWell(
-                                  onTap: () {},
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied to clipboard')));
+                                  },
                                   child: Container(
                                     width: 40, height: 40,
                                     decoration: BoxDecoration(color: AppColors.background.withOpacity(0.4), shape: BoxShape.circle),
@@ -140,9 +154,17 @@ class VendorProfileScreen extends ConsumerWidget {
                           children: [
                             Container(
                               width: 80, height: 80,
-                              decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), borderRadius: BorderRadius.circular(16)),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), 
+                                borderRadius: BorderRadius.circular(16),
+                                image: vendor.portfolio.isNotEmpty 
+                                    ? DecorationImage(image: NetworkImage(vendor.portfolio.first), fit: BoxFit.cover)
+                                    : null,
+                              ),
                               alignment: Alignment.center,
-                              child: Text(vendor.name.split(' ').take(2).map((w) => w.isNotEmpty ? w[0] : '').join(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryForeground)),
+                              child: vendor.portfolio.isEmpty 
+                                  ? Text(vendor.name.split(' ').take(2).map((w) => w.isNotEmpty ? w[0] : '').join(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryForeground))
+                                  : null,
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -195,6 +217,36 @@ class VendorProfileScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(vendor.bio, style: TextStyle(fontSize: 12, color: AppColors.mutedForeground, height: 1.5)),
+                        if (vendor.socialLinks.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            children: vendor.socialLinks.entries.map((entry) {
+                              IconData iconData;
+                              switch (entry.key) {
+                                case 'instagram': iconData = LucideIcons.instagram; break;
+                                case 'facebook': iconData = LucideIcons.facebook; break;
+                                case 'twitter': iconData = LucideIcons.twitter; break;
+                                case 'website': iconData = LucideIcons.globe; break;
+                                default: iconData = LucideIcons.link;
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: InkWell(
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening ${entry.key[0].toUpperCase() + entry.key.substring(1)}...')));
+                                  }, // Action to open link
+                                  child: Row(
+                                    children: [
+                                      Icon(iconData, size: 14, color: AppColors.primary),
+                                      const SizedBox(width: 4),
+                                      Text(entry.key[0].toUpperCase() + entry.key.substring(1), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -279,10 +331,8 @@ class VendorProfileScreen extends ConsumerWidget {
                           color: AppColors.secondary,
                           border: Border.all(color: AppColors.border),
                           borderRadius: BorderRadius.circular(12),
-                          gradient: LinearGradient(colors: [AppColors.primary.withOpacity(0.15 + (e.key % 5) * 0.05), AppColors.secondary], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                          image: DecorationImage(image: NetworkImage(e.value), fit: BoxFit.cover),
                         ),
-                        alignment: Alignment.center,
-                        child: Text('Work #${e.key + 1}', style: TextStyle(fontSize: 10, color: AppColors.mutedForeground)),
                       )).toList(),
                     )),
                     _buildSection('Pricing Packages', Column(
@@ -345,7 +395,9 @@ class VendorProfileScreen extends ConsumerWidget {
                   Expanded(
                     flex: 1,
                     child: ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Calling vendor...')));
+                      },
                       icon: Icon(LucideIcons.phone, size: 16),
                       label: Text('Contact'),
                       style: ElevatedButton.styleFrom(

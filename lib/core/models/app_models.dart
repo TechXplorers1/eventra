@@ -1,5 +1,22 @@
 enum Role { attendee, organizer, service }
 
+// ─── Calendar Entry (custom note/block) ──────────────────────────────────────
+class CalendarEntry {
+  final String id;
+  final String date; // 'yyyy-MM-dd'
+  final String title;
+  final String note;
+  final String type; // 'event' | 'blocked'
+
+  const CalendarEntry({
+    required this.id,
+    required this.date,
+    required this.title,
+    this.note = '',
+    required this.type,
+  });
+}
+
 class AppNotification {
   final String id;
   final String title;
@@ -125,6 +142,9 @@ class VenueData {
   final double rating;
   final String imageUrl;
   final List<String> amenities;
+  final String venueType;
+  final String seatingLayout;
+  final List<SeatSection> seatingLayouts;
   final String description;
 
   const VenueData({
@@ -137,6 +157,9 @@ class VenueData {
     required this.rating,
     required this.imageUrl,
     this.amenities = const [],
+    this.venueType = '',
+    this.seatingLayout = '',
+    this.seatingLayouts = const [],
     this.description = '',
   });
 }
@@ -180,6 +203,7 @@ class ServiceBooking {
   final String serviceId;
   final String vendorId;
   final String vendorName;
+  final String vendorPhone;
   final String serviceName;
   final String packageName;
   final double servicePrice;
@@ -206,6 +230,7 @@ class ServiceBooking {
     required this.serviceId,
     this.vendorId = '',
     required this.vendorName,
+    this.vendorPhone = '',
     required this.serviceName,
     required this.packageName,
     this.servicePrice = 0.0,
@@ -234,6 +259,7 @@ class ServiceBooking {
       serviceId: serviceId,
       vendorId: vendorId,
       vendorName: vendorName,
+      vendorPhone: vendorPhone,
       serviceName: serviceName,
       packageName: packageName,
       servicePrice: servicePrice,
@@ -269,6 +295,7 @@ class ServiceRequest {
   final DateTime createdAt;
   final String? vendorId;
   final String? vendorName;
+  final String vendorPhone;
   final double? vendorPrice;
   final String eventId;
   final String eventName;
@@ -288,6 +315,7 @@ class ServiceRequest {
     required this.createdAt,
     this.vendorId,
     this.vendorName,
+    this.vendorPhone = '',
     this.vendorPrice,
     this.eventId = '',
     this.eventName = '',
@@ -299,6 +327,7 @@ class ServiceRequest {
     String? status,
     String? vendorId,
     String? vendorName,
+    String? vendorPhone,
     double? vendorPrice,
     int? quotes,
   }) {
@@ -315,6 +344,7 @@ class ServiceRequest {
       createdAt: createdAt,
       vendorId: vendorId ?? this.vendorId,
       vendorName: vendorName ?? this.vendorName,
+      vendorPhone: vendorPhone ?? this.vendorPhone,
       vendorPrice: vendorPrice ?? this.vendorPrice,
       eventId: eventId,
       eventName: eventName,
@@ -394,11 +424,15 @@ class ServiceProviderProfile {
   final List<String> equipment;
   final List<String> servicesOffered;
   final String availability; // 'Available' | 'Busy' | 'On Leave'
+  final Map<String, String> socialLinks;
 
   // Venue-specific fields
   final int capacity;
   final String address;
   final List<String> amenities;
+  final String venueType;
+  final String seatingLayout;
+  final List<SeatSection> seatingLayouts;
 
   // Caterer-specific
   final List<String> menuTypes;
@@ -421,9 +455,13 @@ class ServiceProviderProfile {
     this.equipment = const [],
     this.servicesOffered = const [],
     this.availability = 'Available',
+    this.socialLinks = const {},
     this.capacity = 0,
     this.address = '',
     this.amenities = const [],
+    this.venueType = '',
+    this.seatingLayout = '',
+    this.seatingLayouts = const [],
     this.menuTypes = const [],
     this.maxGuests = 0,
   });
@@ -451,9 +489,13 @@ class ServiceProviderProfile {
     List<String>? equipment,
     List<String>? servicesOffered,
     String? availability,
+    Map<String, String>? socialLinks,
     int? capacity,
     String? address,
     List<String>? amenities,
+    String? venueType,
+    String? seatingLayout,
+    List<SeatSection>? seatingLayouts,
     List<String>? menuTypes,
     int? maxGuests,
   }) {
@@ -474,11 +516,85 @@ class ServiceProviderProfile {
       equipment: equipment ?? this.equipment,
       servicesOffered: servicesOffered ?? this.servicesOffered,
       availability: availability ?? this.availability,
+      socialLinks: socialLinks ?? this.socialLinks,
       capacity: capacity ?? this.capacity,
       address: address ?? this.address,
       amenities: amenities ?? this.amenities,
+      venueType: venueType ?? this.venueType,
+      seatingLayout: seatingLayout ?? this.seatingLayout,
+      seatingLayouts: seatingLayouts ?? this.seatingLayouts,
       menuTypes: menuTypes ?? this.menuTypes,
       maxGuests: maxGuests ?? this.maxGuests,
+    );
+  }
+}
+
+class SeatSection {
+  final String id;
+  final String name;
+  final double price;
+  final int colorHex;
+  final int rows;
+  final int seatsPerRow;
+  final int available;
+  final List<String> disabledSeats;
+
+  const SeatSection({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.colorHex,
+    required this.rows,
+    required this.seatsPerRow,
+    required this.available,
+    this.disabledSeats = const [],
+  });
+
+  SeatSection copyWith({
+    String? id,
+    String? name,
+    double? price,
+    int? colorHex,
+    int? rows,
+    int? seatsPerRow,
+    int? available,
+    List<String>? disabledSeats,
+  }) {
+    return SeatSection(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      colorHex: colorHex ?? this.colorHex,
+      rows: rows ?? this.rows,
+      seatsPerRow: seatsPerRow ?? this.seatsPerRow,
+      available: available ?? this.available,
+      disabledSeats: disabledSeats ?? this.disabledSeats,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'colorHex': colorHex,
+      'rows': rows,
+      'seatsPerRow': seatsPerRow,
+      'available': available,
+      'disabledSeats': disabledSeats,
+    };
+  }
+
+  factory SeatSection.fromJson(Map<String, dynamic> json) {
+    return SeatSection(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      price: json['price']?.toDouble() ?? 0.0,
+      colorHex: json['colorHex'] ?? 0xFF000000,
+      rows: json['rows'] ?? 0,
+      seatsPerRow: json['seatsPerRow'] ?? 0,
+      available: json['available'] ?? 0,
+      disabledSeats: List<String>.from(json['disabledSeats'] ?? []),
     );
   }
 }

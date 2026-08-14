@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../core/data/mock_data.dart';
 import '../../../../core/data/venues_data.dart';
+import '../../../../core/data/service_providers_data.dart';
 import '../../../../core/models/app_models.dart';
 
 class OrganizerCreateEventScreen extends ConsumerStatefulWidget {
@@ -20,7 +22,7 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
   bool _published = false;
 
   // ── Step labels ──────────────────────────────────────────────────────────
-  final _steps = ['Info', 'Venue', 'Services', 'Tickets'];
+  final _steps = ['Venue', 'Services', 'Info', 'Tickets', 'Review'];
 
   final _categories = ['Music', 'Sports', 'Comedy', 'Nightlife', 'Arts', 'Performances'];
 
@@ -45,15 +47,16 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
   final _manualVenueCtrl = TextEditingController();
   final _manualCityCtrl = TextEditingController();
   String _venueFilter = '';
+  String _selectedCity = 'All';
 
   // ── Step 3: Services ──────────────────────────────────────────────────────
-  final List<String> _selectedServices = [];
+  final List<ServiceProviderProfile> _selectedProviders = [];
   final _serviceOptions = ['Photography', 'Catering', 'DJ / Sound', 'Decoration', 'Security', 'Videography', 'MC / Host', 'Stage & Lighting'];
 
   // ── Step 4: Tickets ───────────────────────────────────────────────────────
   String _entryType = 'paid'; // 'free' | 'paid'
   final List<Map<String, dynamic>> _tiers = [
-    {'name': 'General Admission', 'price': TextEditingController(text: ''), 'quantity': TextEditingController(text: '')},
+    {'name': 'General Admission', 'price': TextEditingController(text: ''), 'quantity': TextEditingController(text: ''), 'saved': false},
   ];
 
   Map<String, String> _errors = {};
@@ -62,8 +65,6 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
   bool _validateInfo() {
     final errors = <String, String>{};
     if (_titleCtrl.text.trim().isEmpty) errors['title'] = 'Event title is required';
-    if (_dateCtrl.text.isEmpty) errors['date'] = 'Date is required';
-    if (_timeCtrl.text.isEmpty) errors['time'] = 'Time is required';
     if (_descCtrl.text.trim().isEmpty) errors['description'] = 'Description is required';
     setState(() => _errors = errors);
     return errors.isEmpty;
@@ -71,6 +72,8 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
 
   bool _validateVenue() {
     final errors = <String, String>{};
+    if (_dateCtrl.text.isEmpty) errors['date'] = 'Date is required';
+    if (_timeCtrl.text.isEmpty) errors['time'] = 'Time is required';
     if (_useManualVenue) {
       if (_manualVenueCtrl.text.trim().isEmpty) errors['venue'] = 'Venue name is required';
       if (_manualCityCtrl.text.trim().isEmpty) errors['city'] = 'City is required';
@@ -82,8 +85,8 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
   }
 
   void _nextStep() {
-    if (_step == 0 && !_validateInfo()) return;
-    if (_step == 1 && !_validateVenue()) return;
+    if (_step == 0 && !_validateVenue()) return;
+    if (_step == 2 && !_validateInfo()) return;
     setState(() => _step++);
   }
 
@@ -119,6 +122,28 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
 
     final firstTierPrice = tiers.isNotEmpty ? tiers.first.price : 0.0;
 
+    List<SeatSection> eventSeatingLayouts = [];
+    if (_selectedVenue != null && _selectedVenue!.seatingLayouts.isNotEmpty && _entryType != 'free') {
+      for (final section in _selectedVenue!.seatingLayouts) {
+        // Find matching tier
+        final tierInfo = _tiers.firstWhere(
+          (t) => t['name'] == section.name, 
+          orElse: () => {'price': TextEditingController(text: '0')}
+        );
+        final price = double.tryParse((tierInfo['price'] as TextEditingController).text) ?? 0.0;
+        
+        eventSeatingLayouts.add(SeatSection(
+          id: section.id,
+          name: section.name,
+          rows: section.rows,
+          seatsPerRow: section.seatsPerRow,
+          colorHex: section.colorHex,
+          price: price,
+          available: section.available,
+        ));
+      }
+    }
+
     final event = EventData(
       id: 'E${DateTime.now().millisecondsSinceEpoch}',
       title: _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : 'Untitled Event',
@@ -135,6 +160,8 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
       visibility: _visibility,
       ticketTiers: tiers,
       linkedVenueId: _selectedVenue?.id ?? '',
+      seatingLayouts: eventSeatingLayouts,
+      venueStatus: _selectedVenue != null ? 'pending' : 'confirmed',
     );
 
     ref.read(appProvider.notifier).publishEvent(event);
@@ -280,10 +307,11 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
 
   Widget _buildCurrentStep() {
     switch (_step) {
-      case 0: return _buildInfoStep();
-      case 1: return _buildVenueStep();
-      case 2: return _buildServicesStep();
+      case 0: return _buildVenueStep();
+      case 1: return _buildServicesStep();
+      case 2: return _buildInfoStep();
       case 3: return _buildTicketsStep();
+      case 4: return _buildReviewStep();
       default: return const SizedBox();
     }
   }
@@ -343,12 +371,6 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
         }).toList()),
 
         const SizedBox(height: 16),
-        Row(children: [
-          Expanded(child: _buildField('Date', _dateCtrl, 'e.g. Apr 20, 2026', error: _errors['date'])),
-          const SizedBox(width: 12),
-          Expanded(child: _buildField('Time', _timeCtrl, 'e.g. 7:00 PM', error: _errors['time'])),
-        ]),
-        const SizedBox(height: 16),
         _buildField('Description', _descCtrl, 'Tell attendees about the event...', maxLines: 4, error: _errors['description']),
 
         const SizedBox(height: 20),
@@ -404,15 +426,59 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
   // Step 2 — Venue Browser
   // ════════════════════════════════════════════════════════════════════
   Widget _buildVenueStep() {
+    final cities = ['All', ...mockVenues.map((v) => v.city).toSet().toList()..sort()];
+
     final filtered = mockVenues.where((v) {
-      if (_venueFilter.isEmpty) return true;
-      final q = _venueFilter.toLowerCase();
-      return v.name.toLowerCase().contains(q) || v.city.toLowerCase().contains(q);
+      if (_selectedCity != 'All' && v.city != _selectedCity) return false;
+      if (_venueFilter.isNotEmpty) {
+        final q = _venueFilter.toLowerCase();
+        if (!v.name.toLowerCase().contains(q) && !v.city.toLowerCase().contains(q)) return false;
+      }
+      if (_dateCtrl.text.isNotEmpty) {
+        // Simulating venue availability filtering based on date
+        if ((v.name.length + _dateCtrl.text.length) % 5 == 0) return false;
+      }
+      return true;
     }).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       children: [
+        // Date and Time selection
+        Row(children: [
+          Expanded(child: _buildField('Date', _dateCtrl, 'e.g. Apr 20, 2026', error: _errors['date'], readOnly: true, onTap: () async {
+            final date = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now(),
+              firstDate: DateTime.now(),
+              lastDate: DateTime(2050),
+            );
+            if (date != null) {
+              _dateCtrl.text = DateFormat('MMM d, yyyy').format(date);
+              setState(() {});
+            }
+          })),
+          Expanded(child: _buildField('Time', _timeCtrl, 'e.g. 7:00 PM - 11:00 PM', error: _errors['time'], readOnly: true, onTap: () async {
+            final startTime = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.now(),
+              helpText: 'Select Start Time',
+            );
+            if (startTime != null && mounted) {
+              final endTime = await showTimePicker(
+                context: context,
+                initialTime: startTime,
+                helpText: 'Select End Time',
+              );
+              if (endTime != null && mounted) {
+                _timeCtrl.text = '${startTime.format(context)} - ${endTime.format(context)}';
+                setState(() {});
+              }
+            }
+          })),
+        ]),
+        const SizedBox(height: 24),
+
         // Toggle: Browse vs Manual
         Row(children: [
           Expanded(child: _buildToggleBtn('Browse Venues', !_useManualVenue, () => setState(() => _useManualVenue = false))),
@@ -426,6 +492,35 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
           const SizedBox(height: 14),
           _buildField('City', _manualCityCtrl, 'e.g. Pune', error: _errors['city']),
         ] else ...[
+          // City filter
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: cities.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final city = cities[index];
+                final selected = _selectedCity == city;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCity = city),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.primary : AppColors.card,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+                    ),
+                    child: Text(city, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: selected ? AppColors.primaryForeground : AppColors.foreground)),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // Search
           TextFormField(
             onChanged: (v) => setState(() => _venueFilter = v),
@@ -467,10 +562,142 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
     );
   }
 
+  void _showVenuePortfolio(VenueData venue) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    child: Image.network(
+                      venue.imageUrl, 
+                      height: 250, 
+                      width: double.infinity, 
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(height: 250, color: AppColors.secondary, child: Icon(LucideIcons.building2, color: AppColors.mutedForeground, size: 48)),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                        child: const Icon(LucideIcons.x, size: 20, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Text(venue.name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(LucideIcons.mapPin, size: 14, color: AppColors.mutedForeground),
+                        const SizedBox(width: 6),
+                        Expanded(child: Text('${venue.address}, ${venue.city}', style: TextStyle(fontSize: 14, color: AppColors.mutedForeground))),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _venueBadge(LucideIcons.users, '${venue.capacity} guests'),
+                        _venueBadge(LucideIcons.star, '${venue.rating}'),
+                        _venueBadge(LucideIcons.indianRupee, '₹${(venue.pricePerDay / 1000).toStringAsFixed(0)}K/day'),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text('About', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                    const SizedBox(height: 10),
+                    Text(venue.description, style: TextStyle(fontSize: 14, color: AppColors.mutedForeground, height: 1.5)),
+                    const SizedBox(height: 24),
+                    Text('Amenities', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: venue.amenities.map((a) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
+                        child: Text(a, style: TextStyle(fontSize: 12, color: AppColors.foreground, fontWeight: FontWeight.w500)),
+                      )).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  border: Border(top: BorderSide(color: AppColors.border)),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedVenue = venue;
+                      if (venue.seatingLayouts.isNotEmpty) {
+                        _tiers.clear();
+                        for (final section in venue.seatingLayouts) {
+                          _tiers.add({
+                            'name': section.name,
+                            'price': TextEditingController(text: section.price.toString()),
+                            'quantity': TextEditingController(text: (section.rows * section.seatsPerRow).toString()),
+                            'saved': true,
+                            'isLocked': true,
+                          });
+                        }
+                      } else {
+                        _tiers.clear();
+                        _tiers.add({
+                          'name': 'General Admission', 
+                          'price': TextEditingController(text: ''), 
+                          'quantity': TextEditingController(text: venue.capacity.toString()), 
+                          'saved': false,
+                          'isLocked': false,
+                        });
+                      }
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.primaryForeground,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Select Venue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildVenueCard(VenueData venue) {
     final selected = _selectedVenue?.id == venue.id;
     return GestureDetector(
-      onTap: () => setState(() => _selectedVenue = venue),
+      onTap: () => _showVenuePortfolio(venue),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         margin: const EdgeInsets.only(bottom: 12),
@@ -527,69 +754,286 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       children: [
-        Text('Select the services you need for this event (optional)', style: TextStyle(fontSize: 13, color: AppColors.mutedForeground, height: 1.4)),
+        Text('Add service providers for your event (optional)', style: TextStyle(fontSize: 13, color: AppColors.mutedForeground, height: 1.4)),
         const SizedBox(height: 16),
+        
+        // Selected Providers List
+        if (_selectedProviders.isNotEmpty) ...[
+          Text('Selected Providers', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+          const SizedBox(height: 10),
+          ..._selectedProviders.map((p) => _buildSelectedProviderCard(p)).toList(),
+          const SizedBox(height: 16),
+          Text('Add Another Service', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+          const SizedBox(height: 10),
+        ],
+
         Wrap(spacing: 10, runSpacing: 10, children: _serviceOptions.map((s) {
-          final selected = _selectedServices.contains(s);
+          final isSelected = _selectedProviders.any((p) => p.serviceCategory == s);
           return GestureDetector(
-            onTap: () => setState(() => selected ? _selectedServices.remove(s) : _selectedServices.add(s)),
+            onTap: () => _showProvidersModal(s),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary.withOpacity(0.12) : AppColors.card,
-                border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 1.5 : 1),
+                color: AppColors.card,
+                border: Border.all(color: AppColors.border, width: 1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (selected) ...[Icon(LucideIcons.check, size: 13, color: AppColors.primary), const SizedBox(width: 6)],
-                Text(s, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? AppColors.primary : AppColors.foreground)),
+                if (isSelected) ...[Icon(LucideIcons.checkCircle2, size: 13, color: AppColors.primary), const SizedBox(width: 6)],
+                Text(s, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.foreground)),
               ]),
             ),
           );
         }).toList()),
-
-        if (_selectedServices.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.06), border: Border.all(color: AppColors.primary.withOpacity(0.2)), borderRadius: BorderRadius.circular(14)),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${_selectedServices.length} service(s) selected', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary)),
-              const SizedBox(height: 4),
-              Text('After publishing, go to your event dashboard → Services tab to find and book vendors.', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground, height: 1.4)),
-            ]),
-          ),
-        ],
       ],
     );
   }
 
+  Widget _buildSelectedProviderCard(ServiceProviderProfile provider) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.2), shape: BoxShape.circle),
+            child: Icon(LucideIcons.briefcase, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(provider.businessName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                const SizedBox(height: 2),
+                Text(provider.serviceCategory, style: TextStyle(fontSize: 12, color: AppColors.primary)),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(LucideIcons.trash2, size: 18, color: Colors.red.withOpacity(0.8)),
+            onPressed: () => setState(() => _selectedProviders.remove(provider)),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProvidersModal(String category) {
+    final providers = mockServiceProviders.where((p) => p.serviceCategory == category).toList();
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('$category Providers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                    GestureDetector(onTap: () => Navigator.pop(context), child: Icon(LucideIcons.x, color: AppColors.mutedForeground)),
+                  ],
+                ),
+              ),
+              Divider(color: AppColors.border, height: 1),
+              Expanded(
+                child: providers.isEmpty 
+                  ? Center(child: Text('No providers found in this category.', style: TextStyle(color: AppColors.mutedForeground)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: providers.length,
+                      itemBuilder: (context, index) {
+                        final p = providers[index];
+                        return GestureDetector(
+                          onTap: () => _showProviderPortfolio(p),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              border: Border.all(color: AppColors.border),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 26,
+                                  backgroundColor: AppColors.secondary,
+                                  child: Icon(LucideIcons.user, color: AppColors.mutedForeground),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(p.businessName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                                      const SizedBox(height: 4),
+                                      Text('${p.fullName} • ⭐ ${p.rating}', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                                      const SizedBox(height: 6),
+                                      Text('From ₹${p.startingPrice}', style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                                Icon(LucideIcons.chevronRight, size: 20, color: AppColors.mutedForeground),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showProviderPortfolio(ServiceProviderProfile provider) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Stack(
+                  children: [
+                    Center(child: Icon(LucideIcons.image, size: 48, color: AppColors.mutedForeground)),
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                          child: const Icon(LucideIcons.x, size: 20, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Text(provider.businessName, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(LucideIcons.mapPin, size: 14, color: AppColors.mutedForeground),
+                        const SizedBox(width: 6),
+                        Text(provider.city, style: TextStyle(fontSize: 14, color: AppColors.mutedForeground)),
+                        const SizedBox(width: 12),
+                        Icon(LucideIcons.star, size: 14, color: Colors.amber),
+                        const SizedBox(width: 4),
+                        Text(provider.rating, style: TextStyle(fontSize: 14, color: AppColors.foreground, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _venueBadge(LucideIcons.indianRupee, 'Starting ₹${provider.startingPrice}'),
+                        _venueBadge(LucideIcons.briefcase, '${provider.experienceYears} Years Exp'),
+                        _venueBadge(LucideIcons.checkCircle2, '${provider.totalGigs} Events Completed'),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text('About', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                    const SizedBox(height: 10),
+                    Text(provider.bio, style: TextStyle(fontSize: 14, color: AppColors.mutedForeground, height: 1.5)),
+                    
+                    if (provider.servicesOffered.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Text('Services Offered', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: provider.servicesOffered.map((s) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),
+                          child: Text(s, style: TextStyle(fontSize: 12, color: AppColors.foreground, fontWeight: FontWeight.w500)),
+                        )).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  border: Border(top: BorderSide(color: AppColors.border)),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Check if already added
+                    if (!_selectedProviders.any((p) => p.vendorId == provider.vendorId)) {
+                      setState(() => _selectedProviders.add(provider));
+                    }
+                    Navigator.pop(context); // Close portfolio
+                    Navigator.pop(context); // Close browse modal
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.primaryForeground,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Add Provider', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // ════════════════════════════════════════════════════════════════════
-  // Step 4 — Tickets + Review
+  // Step 4 — Tickets
   // ════════════════════════════════════════════════════════════════════
   Widget _buildTicketsStep() {
-    final venueName = _useManualVenue ? _manualVenueCtrl.text.trim() : (_selectedVenue?.name ?? 'No venue selected');
-    final city = _useManualVenue ? _manualCityCtrl.text.trim() : (_selectedVenue?.city ?? '');
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       children: [
-        // Event Summary Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.card, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(16)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [Icon(LucideIcons.clipboardList, size: 14, color: AppColors.primary), const SizedBox(width: 6), Text('Event Summary', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.foreground))]),
-            const SizedBox(height: 12),
-            _summaryRow(LucideIcons.tag, _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : '(Untitled)'),
-            _summaryRow(LucideIcons.calendar, '${_dateCtrl.text} at ${_timeCtrl.text}'),
-            _summaryRow(LucideIcons.mapPin, '$venueName${city.isNotEmpty ? ', $city' : ''}'),
-            _summaryRow(_visibility == 'private' ? LucideIcons.lock : LucideIcons.globe2, _visibility == 'private' ? 'Private event' : 'Public event'),
-            if (_selectedServices.isNotEmpty) _summaryRow(LucideIcons.briefcase, _selectedServices.join(', ')),
-          ]),
-        ),
-        const SizedBox(height: 20),
 
         // Entry type toggle
         Text('Entry Type', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.foreground)),
@@ -601,12 +1045,61 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
         ]),
         const SizedBox(height: 20),
 
+        if (_selectedVenue != null) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.08),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(LucideIcons.mapPin, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text('Selected Venue: ${_selectedVenue!.name}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.foreground)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_selectedVenue!.seatingLayouts.isNotEmpty) ...[
+                  Text('Venue Layout Mode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
+                  const SizedBox(height: 4),
+                  Text('Your tickets are locked to the venue\'s physical seating sections. Define the price for each section below.', style: TextStyle(fontSize: 11, color: AppColors.foreground, height: 1.4)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _showVenueLayoutPreview,
+                      icon: const Icon(LucideIcons.layoutGrid, size: 14),
+                      label: const Text('View Venue Layout'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  )
+                ] else ...[
+                  Text('Capacity Mode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange)),
+                  const SizedBox(height: 4),
+                  Text('This venue does not have defined seating layouts. You are selling unassigned tickets up to the venue\'s capacity of ${_selectedVenue!.capacity} guests.', style: TextStyle(fontSize: 11, color: AppColors.foreground, height: 1.4)),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+
         if (_entryType == 'paid') ...[
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text('Ticket Tiers', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.foreground)),
-            if (_tiers.length < 5)
+            if (_tiers.length < 5 && (_selectedVenue?.seatingLayouts.isEmpty ?? true))
               GestureDetector(
-                onTap: () => setState(() => _tiers.add({'name': '', 'price': TextEditingController(), 'quantity': TextEditingController()})),
+                onTap: () => setState(() => _tiers.add({'name': '', 'price': TextEditingController(), 'quantity': TextEditingController(), 'saved': false})),
                 child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Row(children: [Icon(LucideIcons.plus, size: 12, color: AppColors.primary), const SizedBox(width: 4), Text('Add Tier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary))])),
               ),
           ]),
@@ -615,6 +1108,8 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
           ..._tiers.asMap().entries.map((entry) {
             final i = entry.key;
             final tier = entry.value;
+            final isSaved = tier['saved'] == true;
+            
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
@@ -622,32 +1117,86 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text('Tier ${i + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                  if (_tiers.length > 1)
-                    GestureDetector(onTap: () => setState(() { (tier['price'] as TextEditingController).dispose(); (tier['quantity'] as TextEditingController).dispose(); _tiers.removeAt(i); }), child: Icon(LucideIcons.x, size: 16, color: Colors.red)),
+                  Row(
+                    children: [
+                      if (isSaved)
+                        GestureDetector(
+                          onTap: () => setState(() => tier['saved'] = false),
+                          child: Icon(LucideIcons.edit2, size: 16, color: AppColors.mutedForeground),
+                        ),
+                      if (isSaved && _tiers.length > 1) const SizedBox(width: 12),
+                      if (_tiers.length > 1 && tier['isLocked'] != true)
+                        GestureDetector(onTap: () => setState(() { (tier['price'] as TextEditingController).dispose(); (tier['quantity'] as TextEditingController).dispose(); _tiers.removeAt(i); }), child: Icon(LucideIcons.x, size: 16, color: Colors.red)),
+                    ],
+                  ),
                 ]),
                 const SizedBox(height: 10),
-                TextFormField(
-                  initialValue: tier['name'] as String,
-                  onChanged: (v) => setState(() => tier['name'] = v),
-                  style: TextStyle(color: AppColors.foreground, fontSize: 13),
-                  decoration: _inputDeco('Tier Name (e.g. VIP, General)'),
-                ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(child: TextFormField(
-                    controller: tier['price'] as TextEditingController,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(color: AppColors.foreground, fontSize: 13),
-                    decoration: _inputDeco('Price (₹)'),
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: TextFormField(
-                    controller: tier['quantity'] as TextEditingController,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(color: AppColors.foreground, fontSize: 13),
-                    decoration: _inputDeco('Quantity'),
-                  )),
-                ]),
+                
+                if (isSaved) ...[
+                  Text(tier['name'].toString().isNotEmpty ? tier['name'] : 'Unnamed Tier', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Icon(LucideIcons.indianRupee, size: 12, color: AppColors.mutedForeground),
+                    const SizedBox(width: 4),
+                    Text('${(tier['price'] as TextEditingController).text}', style: TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
+                    const SizedBox(width: 12),
+                    Icon(LucideIcons.hash, size: 12, color: AppColors.mutedForeground),
+                    const SizedBox(width: 4),
+                    Text('${(tier['quantity'] as TextEditingController).text} tickets', style: TextStyle(fontSize: 13, color: AppColors.mutedForeground)),
+                  ]),
+                ] else ...[
+                  if (tier['isLocked'] == true) ...[
+                    Text(tier['name'].toString().isNotEmpty ? tier['name'] : 'Unnamed Tier', style: TextStyle(color: AppColors.foreground, fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(child: TextFormField(
+                        controller: tier['price'] as TextEditingController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: AppColors.foreground, fontSize: 13),
+                        decoration: _inputDeco('Price (₹)'),
+                      )),
+                      const SizedBox(width: 10),
+                      Expanded(child: Center(child: Text('${(tier['quantity'] as TextEditingController).text} tickets\\n(Fixed by Venue)', style: TextStyle(color: AppColors.mutedForeground, fontSize: 11), textAlign: TextAlign.center))),
+                    ]),
+                  ] else ...[
+                    TextFormField(
+                      initialValue: tier['name'] as String,
+                      onChanged: (v) => setState(() => tier['name'] = v),
+                      style: TextStyle(color: AppColors.foreground, fontSize: 13),
+                      decoration: _inputDeco('Tier Name (e.g. VIP, General)'),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(child: TextFormField(
+                        controller: tier['price'] as TextEditingController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: AppColors.foreground, fontSize: 13),
+                        decoration: _inputDeco('Price (₹)'),
+                      )),
+                      const SizedBox(width: 10),
+                      Expanded(child: TextFormField(
+                        controller: tier['quantity'] as TextEditingController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: AppColors.foreground, fontSize: 13),
+                        decoration: _inputDeco('Quantity'),
+                      )),
+                    ]),
+                  ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => tier['saved'] = true),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Save Tier', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
               ]),
             );
           }).toList(),
@@ -663,6 +1212,48 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
               Expanded(child: Text('Free event — attendees can register without payment. Unlimited capacity by default.', style: TextStyle(fontSize: 12, color: AppColors.foreground, height: 1.4))),
             ]),
           ),
+      ],
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // Step 5 — Review
+  // ════════════════════════════════════════════════════════════════════
+  Widget _buildReviewStep() {
+    final venueName = _useManualVenue ? _manualVenueCtrl.text.trim() : (_selectedVenue?.name ?? 'No venue selected');
+    final city = _useManualVenue ? _manualCityCtrl.text.trim() : (_selectedVenue?.city ?? '');
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: AppColors.card, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(16)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [Icon(LucideIcons.clipboardList, size: 14, color: AppColors.primary), const SizedBox(width: 6), Text('Event Summary', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.foreground))]),
+            const SizedBox(height: 12),
+            _summaryRow(LucideIcons.tag, _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : '(Untitled)'),
+            _summaryRow(LucideIcons.calendar, '${_dateCtrl.text} at ${_timeCtrl.text}'),
+            _summaryRow(LucideIcons.mapPin, '$venueName${city.isNotEmpty ? ', $city' : ''}'),
+            _summaryRow(_visibility == 'private' ? LucideIcons.lock : LucideIcons.globe2, _visibility == 'private' ? 'Private event' : 'Public event'),
+            if (_selectedProviders.isNotEmpty) _summaryRow(LucideIcons.briefcase, _selectedProviders.map((p) => p.businessName).join(', ')),
+            
+            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
+            
+            Row(children: [Icon(LucideIcons.ticket, size: 14, color: AppColors.primary), const SizedBox(width: 6), Text('Tickets', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.foreground))]),
+            const SizedBox(height: 12),
+            if (_entryType == 'free')
+              _summaryRow(LucideIcons.gift, 'Free Event')
+            else
+              ..._tiers.where((t) => t['saved'] == true || (t['name'].toString().trim().isNotEmpty)).map((t) => 
+                _summaryRow(LucideIcons.indianRupee, '${t['name']} - ₹${(t['price'] as TextEditingController).text} (${(t['quantity'] as TextEditingController).text} qty)')
+              ),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        Text('Ready to publish?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+        const SizedBox(height: 8),
+        Text('Review your details above. Once published, your event will be live and you can start inviting attendees.', style: TextStyle(fontSize: 14, color: AppColors.mutedForeground, height: 1.4)),
       ],
     );
   }
@@ -690,13 +1281,15 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
     isDense: true,
   );
 
-  Widget _buildField(String label, TextEditingController ctrl, String hint, {int maxLines = 1, String? error}) {
+  Widget _buildField(String label, TextEditingController ctrl, String hint, {int maxLines = 1, String? error, bool readOnly = false, VoidCallback? onTap}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.foreground)),
       const SizedBox(height: 6),
       TextFormField(
         controller: ctrl,
         maxLines: maxLines,
+        readOnly: readOnly,
+        onTap: onTap,
         style: TextStyle(color: AppColors.foreground, fontSize: 13),
         decoration: InputDecoration(
           hintText: hint,
@@ -712,5 +1305,106 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
         ),
       ),
     ]);
+  }
+
+  void _showVenueLayoutPreview() {
+    final venue = _selectedVenue;
+    if (venue == null || venue.seatingLayouts.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.background,
+      builder: (_) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            leading: IconButton(
+              icon: Icon(LucideIcons.x, color: AppColors.foreground),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text('${venue.name} Layouts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+          ),
+          body: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: venue.seatingLayouts.length,
+            itemBuilder: (context, index) {
+              final sec = venue.seatingLayouts[index];
+              final col = Color(sec.colorHex);
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 14, height: 14,
+                          decoration: BoxDecoration(color: col, borderRadius: BorderRadius.circular(3)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(sec.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('${sec.available} available seats (${sec.rows} rows × ${sec.seatsPerRow} seats)', style: TextStyle(color: AppColors.mutedForeground, fontSize: 12)),
+                    const SizedBox(height: 16),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: List.generate(sec.rows, (r) {
+                          final rowLetter = String.fromCharCode(65 + r);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                SizedBox(width: 20,
+                                  child: Text(rowLetter,
+                                    style: TextStyle(fontSize: 9, color: AppColors.mutedForeground))),
+                                const SizedBox(width: 6),
+                                ...List.generate(sec.seatsPerRow, (c) {
+                                  final seatId = '$rowLetter${c + 1}';
+                                  if (sec.disabledSeats.contains(seatId)) {
+                                    return Container(
+                                      width: 22, height: 22,
+                                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    );
+                                  }
+                                  return Container(
+                                    width: 22, height: 22,
+                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    decoration: BoxDecoration(
+                                      color: col.withOpacity(0.15),
+                                      border: Border.all(color: col, width: 1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text('${c + 1}',
+                                      style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                                  );
+                                }),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 }

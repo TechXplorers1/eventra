@@ -5,13 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../core/models/app_models.dart';
-
-const _serviceCategories = [
-  'Photographer', 'Videographer', 'Drone Operator', 'DJ',
-  'Host / MC', 'Caterer', 'Decorator', 'Makeup Artist',
-  'Security Services', 'Event Planner', 'Transportation',
-  'Live Band', 'Dancers', 'Banquet Hall', 'Conference Hall', 'Convention Center',
-];
+import '../../../../core/data/services_marketplace_data.dart';
 
 class ServiceProviderOnboardingScreen extends ConsumerStatefulWidget {
   const ServiceProviderOnboardingScreen({super.key});
@@ -26,13 +20,21 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
   final _emailCtrl = TextEditingController();
   final _mobileCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
-  final _stateCtrl = TextEditingController();
+  
+  // Service-specific
   final _descCtrl = TextEditingController();
   final _expCtrl = TextEditingController();
-  final _teamCtrl = TextEditingController();
-  final _priceCtrl = TextEditingController();
-  final _areaCtrl = TextEditingController();
-  String _category = '';
+  final _equipCtrl = TextEditingController();
+  
+  // Venue-specific
+  final _capacityCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _layoutCtrl = TextEditingController();
+  final _amenitiesCtrl = TextEditingController();
+
+  UserService? _selectedCategory;
+  ServiceGroup? _selectedGroup;
+
   final Map<String, String> _errors = {};
   bool _done = false;
 
@@ -44,29 +46,135 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
     });
   }
 
+  void _showCategoryPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Text('Select Your Category', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: serviceGroups.length,
+                itemBuilder: (context, index) {
+                  final group = serviceGroups[index];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(group.name.toUpperCase(), style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      ),
+                      ...group.services.map((svc) => ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(8)),
+                          child: Icon(svc.icon, color: AppColors.mutedForeground, size: 20),
+                        ),
+                        title: Text(svc.name, style: TextStyle(color: AppColors.foreground, fontWeight: FontWeight.w600, fontSize: 15)),
+                        subtitle: Text(svc.description, style: TextStyle(color: AppColors.mutedForeground, fontSize: 12)),
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = svc;
+                            _selectedGroup = group;
+                            _errors.remove('category');
+                          });
+                          Navigator.pop(context);
+                        },
+                      )),
+                      Divider(color: AppColors.border),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _submit() {
     setState(() {
       _errors.clear();
       if (_fullNameCtrl.text.trim().isEmpty) _errors['fullName'] = 'Required';
       if (_busNameCtrl.text.trim().isEmpty) _errors['busName'] = 'Required';
-      if (_category.isEmpty) _errors['category'] = 'Select a category';
-      if (_emailCtrl.text.trim().isEmpty) _errors['email'] = 'Required';
+      if (_selectedCategory == null) _errors['category'] = 'Select a category';
       if (_mobileCtrl.text.trim().isEmpty) _errors['mobile'] = 'Required';
       if (_cityCtrl.text.trim().isEmpty) _errors['city'] = 'Required';
-      if (_stateCtrl.text.trim().isEmpty) _errors['state'] = 'Required';
-      if (_descCtrl.text.trim().isEmpty) _errors['desc'] = 'Required';
     });
 
     if (_errors.isNotEmpty) return;
+
+    final isVenue = _selectedGroup?.id == 'venue';
 
     final profile = ServiceProviderProfile(
       registered: true,
       status: 'verified', // Auto-approved logic from React code
       fullName: _fullNameCtrl.text.trim(),
       businessName: _busNameCtrl.text.trim(),
+      serviceCategory: _selectedCategory!.name,
+      city: _cityCtrl.text.trim(),
+      
+      // Service fields
+      bio: isVenue ? '' : _descCtrl.text.trim(),
+      experienceYears: int.tryParse(_expCtrl.text.trim()) ?? 0,
+      equipment: isVenue ? [] : _equipCtrl.text.split(',').map((e) => e.trim()).toList(),
+      
+      // Venue fields
+      capacity: int.tryParse(_capacityCtrl.text.trim()) ?? 0,
+      address: isVenue ? _addressCtrl.text.trim() : '',
+      seatingLayout: isVenue ? _layoutCtrl.text.trim() : '',
+      amenities: isVenue ? _amenitiesCtrl.text.split(',').map((e) => e.trim()).toList() : [],
+      venueType: isVenue ? _selectedCategory!.name : '',
     );
+    
     ref.read(appProvider.notifier).registerServiceProvider(profile);
     setState(() => _done = true);
+  }
+
+  Widget _buildField(String label, IconData icon, TextEditingController ctrl, String hint, String errKey, {bool isMulti = false, TextInputType? type}) {
+    final err = _errors[errKey];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mutedForeground)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: ctrl,
+            maxLines: isMulti ? 3 : 1,
+            keyboardType: type,
+            style: TextStyle(color: AppColors.foreground),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: AppColors.mutedForeground),
+              prefixIcon: isMulti ? null : Icon(icon, color: AppColors.mutedForeground),
+              filled: true,
+              fillColor: AppColors.secondary,
+              contentPadding: const EdgeInsets.all(16),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: err != null ? AppColors.error : AppColors.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: err != null ? AppColors.error : AppColors.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: err != null ? AppColors.error : AppColors.primary)),
+            ),
+          ),
+          if (err != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(err, style: TextStyle(color: AppColors.error, fontSize: 12))),
+        ],
+      ),
+    );
   }
 
   @override
@@ -81,13 +189,8 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 40, spreadRadius: 8)],
-                  ),
+                  width: 80, height: 80,
+                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 40, spreadRadius: 8)]),
                   child: Icon(LucideIcons.checkCircle2, size: 40, color: AppColors.primaryForeground),
                 ),
                 const SizedBox(height: 24),
@@ -97,13 +200,13 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.teal.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.teal, shape: BoxShape.circle)),
                       const SizedBox(width: 6),
-                      const Text('Auto-approved · Pending document review', style: TextStyle(color: Colors.teal, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const Text('Auto-approved', style: TextStyle(color: Colors.teal, fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -127,6 +230,8 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
       );
     }
 
+    final isVenue = _selectedGroup?.id == 'venue';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -136,7 +241,13 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
             decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
             child: Icon(LucideIcons.arrowLeft, size: 20, color: AppColors.foreground),
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              Future.microtask(() => context.go('/'));
+            }
+          },
         ),
         title: Text('Become a Service Provider', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       ),
@@ -150,142 +261,99 @@ class _ServiceProviderOnboardingScreenState extends ConsumerState<ServiceProvide
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 20, spreadRadius: 4)],
+                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.2), blurRadius: 20, spreadRadius: 4)],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(LucideIcons.sparkles, color: AppColors.primaryForeground, size: 20),
                   const SizedBox(height: 8),
-                  Text('List your service on Eventra', style: TextStyle(color: AppColors.primaryForeground, fontWeight: FontWeight.bold)),
+                  Text('List your service or venue', style: TextStyle(color: AppColors.primaryForeground, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text('Reach thousands of event organizers and customers. Verification is automatic for early partners.', style: TextStyle(color: AppColors.primaryForeground.withOpacity(0.8), fontSize: 12)),
+                  Text('Reach thousands of event organizers. Just tell us what you offer and start accepting bookings.', style: TextStyle(color: AppColors.primaryForeground.withValues(alpha: 0.8), fontSize: 12)),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            _buildField('Full Name', LucideIcons.user, _fullNameCtrl, 'Your full name', 'fullName'),
-            _buildField('Business Name', LucideIcons.briefcase, _busNameCtrl, 'e.g. Lumière Studios', 'busName'),
             
+            // Category Selector
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('SERVICE CATEGORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mutedForeground)),
+                  Text('CATEGORY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mutedForeground)),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _serviceCategories.map((c) => InkWell(
-                      onTap: () => setState(() {
-                        _category = c;
-                        _errors.remove('category');
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _category == c ? AppColors.primary : AppColors.secondary,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _category == c ? Colors.transparent : AppColors.border),
-                        ),
-                        child: Text(c, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _category == c ? AppColors.primaryForeground : AppColors.foreground)),
+                  InkWell(
+                    onTap: _showCategoryPicker,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _errors.containsKey('category') ? AppColors.error : AppColors.border),
                       ),
-                    )).toList(),
+                      child: Row(
+                        children: [
+                          Icon(_selectedCategory?.icon ?? LucideIcons.search, color: AppColors.primary),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(_selectedCategory?.name ?? 'Select your category', style: TextStyle(color: AppColors.foreground, fontSize: 15))),
+                          Icon(LucideIcons.chevronDown, color: AppColors.mutedForeground),
+                        ],
+                      ),
+                    ),
                   ),
-                  if (_errors['category'] != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(_errors['category']!, style: TextStyle(color: AppColors.destructive, fontSize: 11))),
+                  if (_errors.containsKey('category')) Padding(padding: const EdgeInsets.only(top: 4), child: Text(_errors['category']!, style: TextStyle(color: AppColors.error, fontSize: 12))),
                 ],
               ),
             ),
-
-            _buildField('Email Address', LucideIcons.mail, _emailCtrl, 'you@email.com', 'email', TextInputType.emailAddress),
-            _buildField('Mobile Number', LucideIcons.phone, _mobileCtrl, '+91 98765 43210', 'mobile', TextInputType.phone),
+            
+            _buildField('Full Name', LucideIcons.user, _fullNameCtrl, 'Your full name', 'fullName'),
+            _buildField('Business / Brand Name', LucideIcons.briefcase, _busNameCtrl, 'e.g. Lumière Studios', 'busName'),
+            
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _buildField('City', LucideIcons.mapPin, _cityCtrl, 'Mumbai', 'city')),
+                Expanded(child: _buildField('Mobile Number', LucideIcons.phone, _mobileCtrl, 'Mobile', 'mobile', type: TextInputType.phone)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildField('State', LucideIcons.mapPin, _stateCtrl, 'MH', 'state')),
+                Expanded(child: _buildField('City', LucideIcons.mapPin, _cityCtrl, 'City', 'city')),
               ],
             ),
             
-            _buildField('Service Description', LucideIcons.building2, _descCtrl, 'What you offer, your style, and what makes you unique', 'desc', TextInputType.multiline, 3),
-
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildField('Years Experience', LucideIcons.calendar, _expCtrl, '5', 'exp')),
-                const SizedBox(width: 12),
-                Expanded(child: _buildField('Team Size', LucideIcons.users, _teamCtrl, '4', 'team')),
+            if (_selectedCategory != null) ...[
+              Divider(color: AppColors.border, height: 40),
+              Text(isVenue ? 'VENUE DETAILS' : 'SERVICE DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+              const SizedBox(height: 16),
+              
+              if (isVenue) ...[
+                Row(
+                  children: [
+                    Expanded(child: _buildField('Capacity (Persons)', LucideIcons.users, _capacityCtrl, 'e.g. 500', 'cap', type: TextInputType.number)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildField('Seating Layout', LucideIcons.layoutGrid, _layoutCtrl, 'e.g. Round Table, Theatre', 'layout')),
+                  ],
+                ),
+                _buildField('Venue Address', LucideIcons.map, _addressCtrl, 'Full venue address', 'address', isMulti: true),
+                _buildField('Amenities (Comma separated)', LucideIcons.checkSquare, _amenitiesCtrl, 'e.g. Valet, AC, Catering', 'amenities'),
+              ] else ...[
+                _buildField('Experience (Years)', LucideIcons.award, _expCtrl, 'e.g. 5', 'exp', type: TextInputType.number),
+                _buildField('Equipment (Comma separated)', LucideIcons.package2, _equipCtrl, 'e.g. Sony A7 IV, DJI Drone', 'equip'),
+                _buildField('Bio / Description', LucideIcons.fileText, _descCtrl, 'Tell us about your service', 'desc', isMulti: true),
               ],
-            ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildField('Starting Price', LucideIcons.banknote, _priceCtrl, '15000', 'price')),
-                const SizedBox(width: 12),
-                Expanded(child: _buildField('Coverage Area', LucideIcons.map, _areaCtrl, 'Mumbai', 'area')),
-              ],
-            ),
-            
-            Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-              child: Text('Portfolio uploads, government ID and payout details can be added from your Service Provider dashboard after registration.', style: TextStyle(color: AppColors.mutedForeground, fontSize: 11)),
-            ),
+            ],
 
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _submit,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: Text('Register as Service Provider', style: TextStyle(color: AppColors.primaryForeground, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                child: Text('Complete Registration', style: TextStyle(color: AppColors.primaryForeground, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
-            const SizedBox(height: 16),
-            Text("By continuing you agree to Eventra's Service Provider Terms.", textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
             const SizedBox(height: 32),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildField(String label, IconData icon, TextEditingController ctrl, String hint, String errKey, [TextInputType type = TextInputType.text, int maxLines = 1]) {
-    final error = _errors[errKey];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: AppColors.mutedForeground),
-              const SizedBox(width: 6),
-              Text(label.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mutedForeground)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: ctrl,
-            keyboardType: type,
-            maxLines: maxLines,
-            style: TextStyle(color: AppColors.foreground, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: AppColors.mutedForeground),
-              filled: true,
-              fillColor: AppColors.secondary,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: error != null ? AppColors.destructive : AppColors.border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: error != null ? AppColors.destructive : AppColors.border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: error != null ? AppColors.destructive : AppColors.primary)),
-            ),
-            onChanged: (_) => setState(() => _errors.remove(errKey)),
-          ),
-          if (error != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(error, style: TextStyle(color: AppColors.destructive, fontSize: 11))),
-        ],
       ),
     );
   }

@@ -161,12 +161,14 @@ class Vendor {
   final List<String> portfolio;
   final List<VendorPackage> packages;
   final bool verified;
+  final Map<String, String> socialLinks;
 
   const Vendor({
     required this.id, required this.serviceId, required this.name, required this.rating, required this.reviews,
     required this.experienceYears, required this.city, required this.specialization, required this.startingPrice,
     required this.availability, required this.bio, required this.equipment, required this.servicesOffered,
     required this.details, required this.portfolio, required this.packages, required this.verified,
+    this.socialLinks = const {},
   });
 }
 
@@ -289,13 +291,18 @@ List<Vendor> getVendorsForService(String serviceId, int basePrice, [ServiceProvi
       equipment: equipment,
       servicesOffered: servicesOffered,
       details: cat.details,
-      portfolio: List.generate(6, (k) => 'vendor-$serviceId-$i-$k'),
+      portfolio: List.generate(6, (k) => 'https://picsum.photos/seed/$generatedId-$k/400/400'),
       packages: [
         VendorPackage(name: 'Basic', price: startingPrice, features: ['4 hour coverage', 'Standard delivery', 'Single resource']),
         VendorPackage(name: 'Standard', price: (startingPrice * 1.6).round(), features: ['Full day coverage', 'Edited deliverables', 'Two resources']),
         VendorPackage(name: 'Premium', price: (startingPrice * 2.4).round(), features: ['Multi-day coverage', 'Premium edits', 'Full crew', 'Priority support']),
       ],
       verified: i % 3 != 0,
+      socialLinks: {
+        'instagram': '@${name.replaceAll(' ', '').toLowerCase()}',
+        'facebook': 'facebook.com/${name.replaceAll(' ', '').toLowerCase()}',
+        'website': 'www.${name.replaceAll(' ', '').toLowerCase()}.com',
+      },
     ));
   }
   return vendors;

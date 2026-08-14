@@ -21,7 +21,8 @@ class _Cat {
   const _Cat(this.label, this.icon, this.route, this.color);
 }
 
-const _categories = [
+final _categories = [
+  _Cat('All',          LucideIcons.compass,         '/explore', AppColors.accent),
   _Cat('Music',        LucideIcons.music,          '/explore', Color(0xFF8B5CF6)),
   _Cat('Sports',       LucideIcons.trophy,          '/explore', Color(0xFF22C55E)),
   _Cat('Nightlife',    LucideIcons.moon,            '/explore', Color(0xFF3B82F6)),
@@ -29,10 +30,9 @@ const _categories = [
   _Cat('Festival',     LucideIcons.sparkles,        '/explore', Color(0xFFEF4444)),
   _Cat('Wedding',      LucideIcons.heart,           '/explore', Color(0xFFEC4899)),
   _Cat('Corporate',    LucideIcons.briefcase,       '/explore', Color(0xFF6366F1)),
-  _Cat('All',          LucideIcons.compass,         '/explore', AppColors.accent),
 ];
 
-const _serviceCategories = [
+final _serviceCategories = [
   _Cat('Photography',  LucideIcons.camera,        '/services/photographer',  Color(0xFF8B5CF6)),
   _Cat('Catering',     LucideIcons.utensils,      '/services/caterer',       Color(0xFFF59E0B)),
   _Cat('DJ / Music',   LucideIcons.disc3,         '/services/dj',            Color(0xFF3B82F6)),
@@ -66,8 +66,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _activeFilter = 'All';
 
-  static const _filters = ['All', 'Music', 'Sports', 'Comedy', 'Festival', 'Nightlife', 'Wedding'];
-
   List<EventData> _filtered(List<EventData> src) =>
       _activeFilter == 'All' ? src : src.where((e) => e.category == _activeFilter).toList();
 
@@ -75,11 +73,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final appState = ref.watch(appProvider);
     final allEvents = appState.allEvents;
-    final featured = allEvents.where((e) => e.featured).take(5).toList();
-    final upcomingThisWeek = _filtered(allEvents).skip(1).take(5).toList();
-    final upcomingAll = _filtered(allEvents).take(8).toList();
+    final filteredEvents = _filtered(allEvents);
+    final featured = filteredEvents.where((e) => e.featured).take(5).toList();
+    final featuredIds = featured.map((e) => e.id).toSet();
+    final upcomingThisWeek = filteredEvents.where((e) => !featuredIds.contains(e.id)).take(5).toList();
+    final upcomingAll = filteredEvents.take(8).toList();
     final city = appState.selectedCity;
     final unread = appState.unreadCount;
+    final nearbyEvents = filteredEvents.where((e) => e.city.toLowerCase() == city.toLowerCase()).take(5).toList();
 
     // Fetch mock providers and venues
     final topProviders = getVendorsForService('photographer', 8000).take(2).toList()
@@ -194,7 +195,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           return GestureDetector(
                             onTap: () {
                               setState(() => _activeFilter = cat.label == 'All' ? 'All' : cat.label);
-                              if (cat.label == 'All' && i == _categories.length - 1) context.push('/explore');
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 250),
@@ -269,60 +269,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
                 ],
 
-                // ── [NEW] Upcoming This Week ──────────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
-                    child: EvSectionHeader(
-                      title: 'Upcoming This Week',
-                      actionLabel: 'View Calendar',
-                      onAction: () => context.push('/explore'),
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 210,
-                    child: ListView.separated(
+                // ── [NEW] Nearby Events ───────────────────────────────────
+                if (nearbyEvents.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: upcomingThisWeek.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 16),
-                      itemBuilder: (_, i) => _UpcomingThisWeekCard(event: upcomingThisWeek[i]),
+                      child: EvSectionHeader(
+                        title: 'Nearby Events in $city',
+                        actionLabel: 'See All',
+                        onAction: () => context.push('/explore'),
+                      ),
                     ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+                  const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 240,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: nearbyEvents.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 16),
+                        itemBuilder: (_, i) => _PremiumFeaturedCard(event: nearbyEvents[i]),
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+                ],
 
-                // ── Event Categories Grid ─────────────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
-                    child: EvSectionHeader(
-                      title: 'Browse by Category',
-                      actionLabel: 'Explore',
-                      onAction: () => context.push('/explore'),
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 100,
-                    child: ListView.separated(
+                // ── [NEW] Upcoming This Week ──────────────────────────────
+                if (upcomingThisWeek.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filters.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
-                      itemBuilder: (_, i) {
-                        final cat = _categories[i < _categories.length ? i : 0];
-                        return _PremiumCategoryTile(cat: cat);
-                      },
+                      child: EvSectionHeader(
+                        title: 'Upcoming This Week',
+                        actionLabel: 'View Calendar',
+                        onAction: () => context.push('/explore'),
+                      ),
                     ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+                  const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 210,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: upcomingThisWeek.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 16),
+                        itemBuilder: (_, i) => _UpcomingThisWeekCard(event: upcomingThisWeek[i]),
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+                ],
+
+
 
                 // ── [NEW] Top Rated Providers ─────────────────────────────
                 SliverToBoxAdapter(
@@ -365,16 +368,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
                 SliverToBoxAdapter(
-                  child: GridView.count(
-                    crossAxisCount: 4,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.80,
-                    children: _serviceCategories.map((s) => _PremiumServiceTile(cat: s)).toList(),
-                  ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[0])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[1])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[2])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[3])),
+                          ]
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[4])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[5])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[6])),
+                            const SizedBox(width: 12),
+                            Expanded(child: _PremiumServiceTile(cat: _serviceCategories[7])),
+                          ]
+                        ),
+                      ]
+                    )
+                  )
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
 
@@ -406,28 +429,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
 
                 // ── All Events (Vertical List) ───────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
-                    child: EvSectionHeader(
-                      title: 'Discover More Events',
-                      subtitle: _activeFilter == 'All' ? null : _activeFilter,
-                      actionLabel: 'Browse All',
-                      onAction: () => context.push('/explore'),
+                if (upcomingAll.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePaddingH),
+                      child: EvSectionHeader(
+                        title: 'Discover More Events',
+                        subtitle: _activeFilter == 'All' ? null : _activeFilter,
+                        actionLabel: 'Browse All',
+                        onAction: () => context.push('/explore'),
+                      ),
                     ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => Padding(
-                      padding: const EdgeInsets.fromLTRB(AppSpacing.pagePaddingH, 0, AppSpacing.pagePaddingH, 16),
-                      child: _PremiumEventListCard(event: upcomingAll[i]),
+                  const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => Padding(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.pagePaddingH, 0, AppSpacing.pagePaddingH, 16),
+                        child: _PremiumEventListCard(event: upcomingAll[i]),
+                      ),
+                      childCount: upcomingAll.length,
                     ),
-                    childCount: upcomingAll.length,
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
+                  const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
+                ],
 
                 const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.listBottomPad)),
               ],
@@ -571,6 +596,7 @@ class _UpcomingThisWeekCard extends StatelessWidget {
               height: 100, width: 160,
               decoration: BoxDecoration(image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover)),
               child: Stack(
+                fit: StackFit.expand,
                 children: [
                   Positioned(
                     top: 8, left: 8,
@@ -617,7 +643,7 @@ class _TopProviderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {}, // Could link to vendor profile
+      onTap: () => context.push('/services/${vendor.serviceId}/vendor/${vendor.id}'),
       child: Container(
         width: 200,
         padding: const EdgeInsets.all(16),
@@ -632,8 +658,16 @@ class _TopProviderCard extends StatelessWidget {
               children: [
                 Container(
                   width: 48, height: 48,
-                  decoration: BoxDecoration(color: AppColors.primary.withAlpha(20), shape: BoxShape.circle),
-                  child: Center(child: Text(vendor.name.substring(0, 1), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.primary))),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(20), 
+                    shape: BoxShape.circle,
+                    image: vendor.portfolio.isNotEmpty 
+                        ? DecorationImage(image: NetworkImage(vendor.portfolio.first), fit: BoxFit.cover)
+                        : null,
+                  ),
+                  child: vendor.portfolio.isEmpty 
+                      ? Center(child: Text(vendor.name.substring(0, 1), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.primary)))
+                      : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -680,7 +714,7 @@ class _PopularVenueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {}, // Could link to venue profile
+      onTap: () => context.push('/services/${venue.serviceId}/vendor/${venue.id}'),
       child: Container(
         width: 260,
         decoration: BoxDecoration(
@@ -690,6 +724,7 @@ class _PopularVenueCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
+          fit: StackFit.expand,
           children: [
             Positioned(
               top: 0, left: 0, right: 0, height: 120,
@@ -756,6 +791,7 @@ class _PremiumFeaturedCard extends StatelessWidget {
       onTap: () => context.push('/event/${event.id}'),
       child: Container(
         width: 300,
+        height: 240,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
@@ -764,9 +800,14 @@ class _PremiumFeaturedCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
+          fit: StackFit.expand,
           children: [
             Positioned.fill(
-              child: Image.network(imageUrl, fit: BoxFit.cover),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(color: AppColors.card),
+              ),
             ),
             Positioned.fill(
               child: DecoratedBox(
@@ -887,6 +928,7 @@ class _PremiumServiceTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(cat.route),
       child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.secondary.withAlpha(100),
           borderRadius: BorderRadius.circular(16),

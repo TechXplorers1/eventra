@@ -7,7 +7,9 @@ import '../../../../core/providers/app_provider.dart';
 import '../../../../core/models/app_models.dart';
 import '../../../../core/data/services_marketplace_data.dart';
 
-const List<String> eventTypes = ['Wedding', 'Concert', 'Corporate', 'Birthday', 'College Fest', 'Conference', 'Festival', 'Other'];
+const List<String> eventTypes = [
+  'Wedding', 'Concert', 'Corporate', 'Birthday', 'College Fest', 'Conference', 'Festival', 'Other'
+];
 
 const List<Map<String, dynamic>> payMethods = [
   {'id': 'upi', 'label': 'UPI', 'icon': LucideIcons.smartphone, 'desc': 'GPay, PhonePe, Paytm'},
@@ -19,7 +21,11 @@ const List<Map<String, dynamic>> payMethods = [
 class ServiceBookingScreen extends ConsumerStatefulWidget {
   final String serviceId;
   final String vendorId;
-  const ServiceBookingScreen({super.key, required this.serviceId, required this.vendorId});
+  const ServiceBookingScreen({
+    super.key,
+    required this.serviceId,
+    required this.vendorId,
+  });
 
   @override
   ConsumerState<ServiceBookingScreen> createState() => _ServiceBookingScreenState();
@@ -28,7 +34,7 @@ class ServiceBookingScreen extends ConsumerStatefulWidget {
 class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
   String _step = 'form';
   String _pkgName = 'Standard';
-  
+
   String _eventName = '';
   String _eventType = eventTypes[0];
   String _eventDate = '';
@@ -38,30 +44,69 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
   String _city = '';
   String _guests = '';
   String _specialRequirements = '';
-  
+
   String _payMethod = 'upi';
   ServiceBooking? _confirmed;
 
+  // Track scroll controllers if needed, but not strictly necessary for simple list
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
-    final service = findUserService(widget.serviceId);
-    final vendor = service != null ? getVendor(service.id, widget.vendorId, service.startingPrice) : null;
-    final pkg = vendor?.packages.firstWhere((p) => p.name == _pkgName, orElse: () => vendor.packages.length > 1 ? vendor.packages[1] : vendor.packages[0]);
+    UserService? tryGetService() {
+      try {
+        return findUserService(widget.serviceId);
+      } catch (_) {
+        return null;
+      }
+    }
+    final service = tryGetService();
+
+    Vendor? tryGetVendor() {
+      try {
+        if (service != null) return getVendor(service.id, widget.vendorId, service.startingPrice);
+      } catch (_) {}
+      return null;
+    }
+    final vendor = tryGetVendor();
+
+    final pkgs = vendor?.packages ?? [];
+    
+    // Auto-select package if not found
+    if (pkgs.isNotEmpty && !pkgs.any((p) => p.name == _pkgName)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _pkgName = pkgs.first.name);
+      });
+    }
+
+    final pkg = pkgs.isEmpty
+        ? null
+        : pkgs.firstWhere(
+            (p) => p.name == _pkgName,
+            orElse: () => pkgs.first,
+          );
 
     if (service == null || vendor == null || pkg == null) {
       return Scaffold(
         backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(LucideIcons.arrowLeft, color: AppColors.foreground),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+            },
+          ),
+        ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Booking unavailable', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => context.pop(),
-                child: Text('Go back', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-              ),
-            ],
+          child: Text(
+            'Booking unavailable',
+            style: TextStyle(fontSize: 18, color: AppColors.mutedForeground),
           ),
         ),
       );
@@ -71,579 +116,651 @@ class _ServiceBookingScreenState extends ConsumerState<ServiceBookingScreen> {
     final taxes = pkg.price * 0.18;
     final total = pkg.price + platformFee + taxes;
 
-    final canContinue = _eventName.isNotEmpty && _eventDate.isNotEmpty && _startTime.isNotEmpty && _endTime.isNotEmpty && _venueName.isNotEmpty && _city.isNotEmpty && _guests.isNotEmpty;
-
-    Widget buildHeader(String title, String sub) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-        child: Row(
-          children: [
-            InkWell(
-              onTap: () {
-                if (_step == 'form') {
-                  context.pop();
-                } else if (_step == 'review') {
-                  setState(() => _step = 'form');
-                } else if (_step == 'payment') {
-                  setState(() => _step = 'review');
-                }
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
-                child: Icon(LucideIcons.arrowLeft, size: 20, color: AppColors.foreground),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                  Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
+    switch (_step) {
+      case 'form':
+        return _buildFormStep(context, service, vendor, pkgs, pkg);
+      case 'review':
+        return _buildReviewStep(context, service, vendor, pkg, platformFee, taxes, total);
+      case 'payment':
+        return _buildPaymentStep(context, vendor, total, service, pkg, platformFee, taxes);
+      case 'success':
+        return _buildSuccessStep(context);
+      default:
+        return const SizedBox.shrink();
     }
+  }
 
-    if (_step == 'success' && _confirmed != null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-            child: Column(
-              children: [
-                Container(
-                  width: 80, height: 80,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 20)],
-                  ),
-                  child: Icon(LucideIcons.checkCircle2, size: 40, color: AppColors.primaryForeground),
-                ),
-                const SizedBox(height: 20),
-                Text('Service Booked Successfully', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.foreground), textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                Text('Your booking with ${_confirmed!.vendorName} is confirmed.', style: TextStyle(fontSize: 14, color: AppColors.mutedForeground), textAlign: TextAlign.center),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: AppColors.card, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(16)),
-                  child: Column(
-                    children: [
-                      _buildRow('Order Number', _confirmed!.orderNumber),
-                      _buildRow('Booking ID', 'BKG-${_confirmed!.id.substring(_confirmed!.id.length > 8 ? _confirmed!.id.length - 8 : 0).toUpperCase()}'),
-                      _buildRow('Service', _confirmed!.serviceName),
-                      _buildRow('Package', _confirmed!.packageName),
-                      _buildRow('Event', _confirmed!.eventName),
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Total Paid', style: TextStyle(fontSize: 14, color: AppColors.mutedForeground)),
-                          Text('₹${_confirmed!.total.toInt()}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => context.go('/tickets'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text('View My Bookings', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryForeground)),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => context.go('/home'),
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text('Back to Home', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_step == 'form') {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              ListView(
-                padding: const EdgeInsets.fromLTRB(16, 80, 16, 120),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.card, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 56, height: 56,
-                          decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), borderRadius: BorderRadius.circular(12)),
-                          alignment: Alignment.center,
-                          child: Text(vendor.name.split(' ').take(2).map((w) => w.isNotEmpty ? w[0] : '').join(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primaryForeground)),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(vendor.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                              Text('${service.name} • ${vendor.city}', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                              Text('Starting ₹${vendor.startingPrice}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  Text('Select Package', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: vendor.packages.map((p) {
-                      final isSelected = _pkgName == p.name;
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: InkWell(
-                            onTap: () => setState(() => _pkgName = p.name),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.secondary,
-                                border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(p.name, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                                  const SizedBox(height: 4),
-                                  Text('₹${p.price}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: AppColors.card, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)),
-                    child: Column(
-                      children: pkg.features.map((f) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            Text('•', style: TextStyle(color: AppColors.primary, fontSize: 14)),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(f, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground))),
-                          ],
-                        ),
-                      )).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildField('Event Name', true, TextField(
-                    onChanged: (v) => setState(() => _eventName = v),
-                    style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                    decoration: _inputDecoration('e.g. Rohan & Priya Sangeet'),
-                  )),
-                  _buildField('Event Type', true, Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(color: AppColors.secondary, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _eventType,
-                        isExpanded: true,
-                        dropdownColor: AppColors.secondary,
-                        style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                        items: eventTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                        onChanged: (v) => setState(() => _eventType = v!),
-                      ),
-                    ),
-                  )),
-                  Row(
-                    children: [
-                      Expanded(child: _buildField('Date', true, TextField(
-                        onChanged: (v) => setState(() => _eventDate = v),
-                        style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                        decoration: _inputDecoration('YYYY-MM-DD'),
-                      ))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildField('Start', true, TextField(
-                        onChanged: (v) => setState(() => _startTime = v),
-                        style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                        decoration: _inputDecoration('HH:MM'),
-                      ))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildField('End', true, TextField(
-                        onChanged: (v) => setState(() => _endTime = v),
-                        style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                        decoration: _inputDecoration('HH:MM'),
-                      ))),
-                    ],
-                  ),
-                  _buildField('Venue Name', true, TextField(
-                    onChanged: (v) => setState(() => _venueName = v),
-                    style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                    decoration: _inputDecoration('e.g. The Leela Ballroom'),
-                  )),
-                  Row(
-                    children: [
-                      Expanded(child: _buildField('City', true, TextField(
-                        onChanged: (v) => setState(() => _city = v),
-                        style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                        decoration: _inputDecoration('Mumbai'),
-                      ))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildField('Number of Guests', true, TextField(
-                        keyboardType: TextInputType.number,
-                        onChanged: (v) => setState(() => _guests = v),
-                        style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                        decoration: _inputDecoration('250'),
-                      ))),
-                    ],
-                  ),
-                  _buildField('Special Requirements', false, TextField(
-                    maxLines: 3,
-                    onChanged: (v) => setState(() => _specialRequirements = v),
-                    style: TextStyle(color: AppColors.foreground, fontSize: 14),
-                    decoration: _inputDecoration('Anything the vendor should know...'),
-                  )),
-                ],
-              ),
-              Positioned(
-                top: 0, left: 0, right: 0,
-                child: Container(
-                  color: AppColors.background,
-                  child: buildHeader('Book Service', '${vendor.name} • ${service.name}'),
-                ),
-              ),
-              Positioned(
-                bottom: 0, left: 0, right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.background.withOpacity(0.95), border: Border(top: BorderSide(color: AppColors.border))),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Total', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                          Text('₹${total.toInt()}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                        ],
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: canContinue ? () => setState(() => _step = 'review') : null,
-                        icon: Text('Continue'),
-                        label: Icon(LucideIcons.chevronRight, size: 16),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.primaryForeground,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_step == 'review') {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              ListView(
-                padding: const EdgeInsets.fromLTRB(16, 80, 16, 100),
-                children: [
-                  _buildCard('Service Provider', [
-                    _buildRow('Provider', vendor.name),
-                    _buildRow('Service', service.name),
-                    _buildRow('Package', '${pkg.name} • ₹${pkg.price}'),
-                    _buildRow('Duration', '$_startTime – $_endTime'),
-                  ]),
-                  const SizedBox(height: 16),
-                  _buildCard('Event Details', [
-                    _buildRow('Event', _eventName),
-                    _buildRow('Type', _eventType),
-                    _buildRow('Date', _eventDate),
-                    _buildRow('Venue', '$_venueName, $_city'),
-                    _buildRow('Guests', _guests),
-                    if (_specialRequirements.isNotEmpty) _buildRow('Notes', _specialRequirements),
-                  ]),
-                  const SizedBox(height: 16),
-                  _buildCard('Pricing Breakdown', [
-                    _buildRow('Service Fee', '₹${pkg.price}'),
-                    _buildRow('Platform Fee', '₹${platformFee.toInt()}'),
-                    _buildRow('Taxes', '₹${taxes.toInt()}'),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider()),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Total', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                        Text('₹${total.toInt()}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                      ],
-                    ),
-                  ]),
-                ],
-              ),
-              Positioned(
-                top: 0, left: 0, right: 0,
-                child: Container(
-                  color: AppColors.background,
-                  child: buildHeader('Review Booking', 'Confirm details before payment'),
-                ),
-              ),
-              Positioned(
-                bottom: 0, left: 0, right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.background.withOpacity(0.95), border: Border(top: BorderSide(color: AppColors.border))),
-                  child: ElevatedButton(
-                    onPressed: () => setState(() => _step = 'payment'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text('Proceed to Payment', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryForeground)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+  // ==========================================
+  // STEP 1: FORM
+  // ==========================================
+  Widget _buildFormStep(
+    BuildContext context,
+    UserService service,
+    Vendor vendor,
+    List<VendorPackage> pkgs,
+    VendorPackage currentPkg,
+  ) {
+    final canContinue = _eventName.isNotEmpty &&
+        _eventDate.isNotEmpty &&
+        _startTime.isNotEmpty &&
+        _endTime.isNotEmpty &&
+        _venueName.isNotEmpty &&
+        _city.isNotEmpty &&
+        _guests.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
+      appBar: _buildAppBar('Book Service', '${vendor.name} • ${service.name}'),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(16, 80, 16, 100),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.shieldCheck, size: 16, color: Colors.teal),
-                      const SizedBox(width: 8),
-                      Text('Secured by 256-bit encryption', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.teal)),
-                    ],
+            // Vendor Info Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      vendor.name.substring(0, 2).toUpperCase(),
+                      style: TextStyle(color: AppColors.primaryForeground, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-                Text('Select Payment Method', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                const SizedBox(height: 12),
-                ...payMethods.map((m) {
-                  final isSelected = _payMethod == m['id'];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: InkWell(
-                      onTap: () => setState(() => _payMethod = m['id'] as String),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.secondary,
-                          border: Border.all(color: isSelected ? AppColors.primary.withOpacity(0.3) : AppColors.border),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(vendor.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                        const SizedBox(height: 4),
+                        Row(
                           children: [
-                            Container(
-                              width: 40, height: 40,
-                              decoration: BoxDecoration(
-                                gradient: isSelected ? LinearGradient(colors: [AppColors.primary, AppColors.accent]) : null,
-                                color: isSelected ? null : AppColors.muted,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(m['icon'] as IconData, size: 18, color: isSelected ? AppColors.primaryForeground : AppColors.mutedForeground),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(m['label'] as String, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                                  Text(m['desc'] as String, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              width: 20, height: 20,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: isSelected ? AppColors.primary : AppColors.mutedForeground, width: 2),
-                                color: isSelected ? AppColors.primary : Colors.transparent,
-                              ),
-                              alignment: Alignment.center,
-                              child: isSelected ? Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.primaryForeground, shape: BoxShape.circle)) : null,
-                            ),
+                            Icon(LucideIcons.star, size: 14, color: Colors.orangeAccent),
+                            const SizedBox(width: 4),
+                            Text('${vendor.rating} (${vendor.reviews})', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Package Selection
+            Text('Select Package', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 110,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: pkgs.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final p = pkgs[index];
+                  final isSelected = _pkgName == p.name;
+                  return GestureDetector(
+                    onTap: () => setState(() => _pkgName = p.name),
+                    child: Container(
+                      width: 140,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.secondary,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: isSelected ? AppColors.primary : AppColors.border, width: isSelected ? 2 : 1),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(p.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                          const SizedBox(height: 8),
+                          Text('₹${p.price}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? AppColors.primary : AppColors.foreground)),
+                        ],
                       ),
                     ),
                   );
-                }).toList(),
-              ],
-            ),
-            Positioned(
-              top: 0, left: 0, right: 0,
-              child: Container(
-                color: AppColors.background,
-                child: buildHeader('Payment', '₹${total.toInt()} • ${vendor.name}'),
+                },
               ),
             ),
-            Positioned(
-              bottom: 0, left: 0, right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: AppColors.background.withOpacity(0.95), border: Border(top: BorderSide(color: AppColors.border))),
-                child: ElevatedButton(
-                  onPressed: () {
-                    final num = 'ORD-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
-                    final booking = ServiceBooking(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      orderNumber: num,
-                      serviceId: service.id,
-                      serviceName: service.name,
-                      vendorId: vendor.id,
-                      vendorName: vendor.name,
-                      packageName: pkg.name,
-                      servicePrice: pkg.price.toDouble(),
-                      platformFee: platformFee,
-                      taxes: taxes,
-                      total: total,
-                      paymentMethod: _payMethod.toUpperCase(),
-                      status: 'Confirmed',
-                      bookedAt: DateTime.now().toIso8601String(),
-                      eventName: _eventName,
-                      eventType: _eventType,
-                      eventDate: _eventDate,
-                      startTime: _startTime,
-                      endTime: _endTime,
-                      venueName: _venueName,
-                      city: _city,
-                      guests: int.tryParse(_guests) ?? 0,
-                      specialRequirements: _specialRequirements,
-                      visibility: 'private',
-                    );
-                    ref.read(appProvider.notifier).addServiceBooking(booking);
-                    setState(() {
-                      _confirmed = booking;
-                      _step = 'success';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            const SizedBox(height: 16),
+
+            // Current Package Details
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: currentPkg.features.map((f) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.checkCircle2, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(f, style: TextStyle(fontSize: 14, color: AppColors.mutedForeground))),
+                    ],
                   ),
-                  child: Text('Pay ₹${total.toInt()}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryForeground)),
+                )).toList(),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Event Details Form
+            Text('Event Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+            const SizedBox(height: 16),
+
+            _buildTextField(label: 'EVENT NAME *', hint: 'e.g. Rohan & Priya Sangeet', initialValue: _eventName, onChanged: (v) => setState(() => _eventName = v)),
+            
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
+              child: Text('EVENT TYPE *', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mutedForeground)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppColors.secondary,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _eventType,
+                  isExpanded: true,
+                  dropdownColor: AppColors.card,
+                  icon: Icon(LucideIcons.chevronDown, color: AppColors.mutedForeground),
+                  style: TextStyle(color: AppColors.foreground, fontSize: 14),
+                  onChanged: (v) => setState(() => _eventType = v!),
+                  items: eventTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                 ),
               ),
             ),
+
+            Row(
+              children: [
+                Expanded(child: _buildTextField(
+                  label: 'DATE *', 
+                  hint: 'YYYY-MM-DD', 
+                  initialValue: _eventDate, 
+                  onChanged: (v) {},
+                  readOnly: true,
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2030),
+                    );
+                    if (date != null) {
+                      setState(() => _eventDate = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}');
+                    }
+                  }
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: _buildTextField(
+                  label: 'START *', 
+                  hint: 'HH:MM', 
+                  initialValue: _startTime, 
+                  onChanged: (v) {},
+                  readOnly: true,
+                  onTap: () async {
+                    final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                    if (time != null && context.mounted) {
+                      setState(() => _startTime = time.format(context));
+                    }
+                  }
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: _buildTextField(
+                  label: 'END *', 
+                  hint: 'HH:MM', 
+                  initialValue: _endTime, 
+                  onChanged: (v) {},
+                  readOnly: true,
+                  onTap: () async {
+                    final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                    if (time != null && context.mounted) {
+                      setState(() => _endTime = time.format(context));
+                    }
+                  }
+                )),
+              ],
+            ),
+
+            Row(
+              children: [
+                Expanded(flex: 2, child: _buildTextField(label: 'VENUE NAME *', hint: 'e.g. Taj Palace', initialValue: _venueName, onChanged: (v) => setState(() => _venueName = v))),
+                const SizedBox(width: 12),
+                Expanded(flex: 1, child: _buildTextField(label: 'CITY *', hint: 'e.g. Mumbai', initialValue: _city, onChanged: (v) => setState(() => _city = v))),
+              ],
+            ),
+
+            _buildTextField(label: 'GUESTS *', hint: 'Number of guests', initialValue: _guests, keyboardType: TextInputType.number, onChanged: (v) => setState(() => _guests = v)),
+            _buildTextField(label: 'SPECIAL REQUIREMENTS', hint: 'Any additional notes for the vendor...', initialValue: _specialRequirements, maxLines: 3, onChanged: (v) => setState(() => _specialRequirements = v)),
           ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomBar(
+        buttonText: 'Review Booking',
+        isEnabled: true,
+        onPressed: () {
+          if (!canContinue) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please fill all required fields (*) to continue'),
+                backgroundColor: AppColors.destructive,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+          // Unfocus keyboard before navigating to next step
+          FocusScope.of(context).unfocus();
+          setState(() => _step = 'review');
+        },
+      ),
+    );
+  }
+
+  // ==========================================
+  // STEP 2: REVIEW
+  // ==========================================
+  Widget _buildReviewStep(
+    BuildContext context,
+    UserService service,
+    Vendor vendor,
+    VendorPackage pkg,
+    double platformFee,
+    double taxes,
+    double total,
+  ) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar('Review Booking', 'Confirm details before payment', onBack: () => setState(() => _step = 'form')),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        children: [
+          _buildSummaryCard('Service Info', [
+            _buildSummaryRow('Provider', vendor.name),
+            _buildSummaryRow('Service', service.name),
+            _buildSummaryRow('Package', '${pkg.name} • ₹${pkg.price}'),
+            _buildSummaryRow('Duration', '$_startTime – $_endTime'),
+          ]),
+          const SizedBox(height: 16),
+          _buildSummaryCard('Event Details', [
+            _buildSummaryRow('Event', _eventName),
+            _buildSummaryRow('Type', _eventType),
+            _buildSummaryRow('Date', _eventDate),
+            _buildSummaryRow('Venue', '$_venueName, $_city'),
+            _buildSummaryRow('Guests', _guests),
+            if (_specialRequirements.isNotEmpty) _buildSummaryRow('Notes', _specialRequirements),
+          ]),
+          const SizedBox(height: 16),
+          _buildSummaryCard('Pricing Breakdown', [
+            _buildSummaryRow('Service Fee', '₹${pkg.price}'),
+            _buildSummaryRow('Platform Fee', '₹${platformFee.toInt()}'),
+            _buildSummaryRow('Taxes', '₹${taxes.toInt()}'),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Divider(color: AppColors.border)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total Amount', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                Text('₹${total.toInt()}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+              ],
+            ),
+          ]),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomBar(
+        buttonText: 'Proceed to Payment',
+        isEnabled: true,
+        onPressed: () => setState(() => _step = 'payment'),
+      ),
+    );
+  }
+
+  // ==========================================
+  // STEP 3: PAYMENT
+  // ==========================================
+  Widget _buildPaymentStep(
+    BuildContext context,
+    Vendor vendor,
+    double total,
+    UserService service,
+    VendorPackage pkg,
+    double platformFee,
+    double taxes,
+  ) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar('Payment', '₹${total.toInt()} • ${vendor.name}', onBack: () => setState(() => _step = 'review')),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Row(
+              children: [
+                Icon(LucideIcons.shieldCheck, size: 20, color: Colors.teal),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Secured by 256-bit encryption. Your payment is safe.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.teal))),
+              ],
+            ),
+          ),
+          Text('Select Payment Method', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+          const SizedBox(height: 16),
+          ...payMethods.map((m) {
+            final isSelected = _payMethod == m['id'];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: InkWell(
+                onTap: () => setState(() => _payMethod = m['id'] as String),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.secondary,
+                    border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: isSelected ? LinearGradient(colors: [AppColors.primary, AppColors.accent]) : null,
+                          color: isSelected ? null : AppColors.card,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(m['icon'] as IconData, size: 24, color: isSelected ? AppColors.primaryForeground : AppColors.mutedForeground),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(m['label'] as String, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                            Text(m['desc'] as String, style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: isSelected ? AppColors.primary : AppColors.mutedForeground, width: 2),
+                          color: isSelected ? AppColors.primary : Colors.transparent,
+                        ),
+                        alignment: Alignment.center,
+                        child: isSelected ? Container(width: 10, height: 10, decoration: BoxDecoration(color: AppColors.primaryForeground, shape: BoxShape.circle)) : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomBar(
+        buttonText: 'Pay ₹${total.toInt()} Securely',
+        isEnabled: true,
+        onPressed: () {
+          final num = 'ORD-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
+          final booking = ServiceBooking(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            orderNumber: num,
+            serviceId: service.id,
+            serviceName: service.name,
+            vendorId: vendor.id,
+            vendorName: vendor.name,
+            packageName: pkg.name,
+            servicePrice: pkg.price.toDouble(),
+            platformFee: platformFee,
+            taxes: taxes,
+            total: total,
+            paymentMethod: _payMethod.toUpperCase(),
+            status: 'Confirmed',
+            bookedAt: DateTime.now().toIso8601String(),
+            eventName: _eventName,
+            eventType: _eventType,
+            eventDate: _eventDate,
+            startTime: _startTime,
+            endTime: _endTime,
+            venueName: _venueName,
+            city: _city,
+            guests: int.tryParse(_guests) ?? 0,
+            specialRequirements: _specialRequirements,
+            visibility: 'private',
+          );
+          ref.read(appProvider.notifier).addServiceBooking(booking);
+          setState(() {
+            _confirmed = booking;
+            _step = 'success';
+          });
+        },
+      ),
+    );
+  }
+
+  // ==========================================
+  // STEP 4: SUCCESS
+  // ==========================================
+  Widget _buildSuccessStep(BuildContext context) {
+    if (_confirmed == null) return const SizedBox.shrink();
+    
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 30, spreadRadius: 10)],
+                  ),
+                  child: Icon(LucideIcons.checkCircle2, size: 48, color: AppColors.primaryForeground),
+                ),
+                const SizedBox(height: 32),
+                Text('Booking Confirmed!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.foreground), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                Text('Your booking with ${_confirmed!.vendorName} was successful. Details have been saved to your account.', 
+                  style: TextStyle(fontSize: 15, color: AppColors.mutedForeground, height: 1.5), textAlign: TextAlign.center),
+                const SizedBox(height: 40),
+                
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.card, 
+                    border: Border.all(color: AppColors.border), 
+                    borderRadius: BorderRadius.circular(20)
+                  ),
+                  child: Column(
+                    children: [
+                      _buildSummaryRow('Order Number', _confirmed!.orderNumber),
+                      const SizedBox(height: 12),
+                      _buildSummaryRow('Booking ID', 'BKG-${_confirmed!.id.substring(_confirmed!.id.length > 8 ? _confirmed!.id.length - 8 : 0).toUpperCase()}'),
+                      const SizedBox(height: 12),
+                      _buildSummaryRow('Service', _confirmed!.serviceName),
+                      const SizedBox(height: 12),
+                      _buildSummaryRow('Package', _confirmed!.packageName),
+                      const SizedBox(height: 12),
+                      _buildSummaryRow('Event', _confirmed!.eventName),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                ElevatedButton(
+                  onPressed: () => context.go('/'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text('Back to Home', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primaryForeground)),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildField(String label, bool required, Widget child) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // ==========================================
+  // HELPER WIDGETS
+  // ==========================================
+
+  AppBar _buildAppBar(String title, String subtitle, {VoidCallback? onBack}) {
+    return AppBar(
+      backgroundColor: AppColors.background,
+      elevation: 0,
+      centerTitle: true,
+      leading: IconButton(
+        icon: Icon(LucideIcons.arrowLeft, color: AppColors.foreground),
+        onPressed: onBack ?? () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/');
+          }
+        },
+      ),
+      title: Column(
         children: [
-          RichText(
-            text: TextSpan(
-              text: label.toUpperCase(),
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mutedForeground, letterSpacing: 1),
-              children: [
-                if (required) TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          child,
+          Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+          Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
         ],
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: AppColors.mutedForeground),
-      filled: true,
-      fillColor: AppColors.secondary,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      isDense: true,
+  Widget _buildBottomBar({required String buttonText, required bool isEnabled, required VoidCallback onPressed}) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: ElevatedButton(
+        onPressed: isEnabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
+          minimumSize: const Size.fromHeight(56),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: Text(
+          buttonText,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isEnabled ? AppColors.primaryForeground : AppColors.primaryForeground.withOpacity(0.5),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildCard(String title, List<Widget> children) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.card, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(16)),
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required String initialValue,
+    required Function(String) onChanged,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    bool readOnly = false,
+    VoidCallback? onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mutedForeground, letterSpacing: 1)),
-          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, left: 4),
+            child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mutedForeground)),
+          ),
+          TextFormField(
+            key: readOnly ? ValueKey(initialValue) : null,
+            initialValue: initialValue,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            readOnly: readOnly,
+            onTap: onTap,
+            onChanged: onChanged,
+            style: TextStyle(color: AppColors.foreground, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: AppColors.mutedForeground),
+              filled: true,
+              fillColor: AppColors.secondary,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.primary)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(String title, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+          const SizedBox(height: 16),
           ...children,
         ],
       ),
     );
   }
 
-  Widget _buildRow(String key, String val) {
+  Widget _buildSummaryRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(key, style: TextStyle(fontSize: 14, color: AppColors.mutedForeground)),
-          Expanded(child: Text(val, textAlign: TextAlign.right, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.foreground))),
+          Expanded(flex: 2, child: Text(label, style: TextStyle(fontSize: 14, color: AppColors.mutedForeground))),
+          Expanded(flex: 3, child: Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.foreground), textAlign: TextAlign.right)),
         ],
       ),
     );

@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/mock_data.dart';
 import '../../../../core/models/app_models.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:go_router/go_router.dart';
 
 void showTicketDetailModal(BuildContext context, BookedTicket ticket) {
   final bookingId = 'BKG-${ticket.id.substring(ticket.id.length > 8 ? ticket.id.length - 8 : 0).toUpperCase()}';
@@ -149,6 +150,29 @@ void showTicketDetailModal(BuildContext context, BookedTicket ticket) {
                         _buildActionButton(context, LucideIcons.calendarPlus, 'Calendar'),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _buildActionOutlinedButton(context, LucideIcons.star, 'Write Review', () {
+                          context.pop();
+                          context.push('/write-review/${ticket.id}');
+                        }),
+                        const SizedBox(width: 8),
+                        _buildActionOutlinedButton(context, LucideIcons.alertTriangle, 'Report Issue', () {
+                          context.pop();
+                          context.push('/dispute/${ticket.id}');
+                        }, color: AppColors.destructive),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildActionOutlinedButton(context, LucideIcons.xCircle, 'Cancel Booking', () {
+                          context.pop();
+                          context.push('/cancel-booking/ticket/${ticket.id}');
+                        }, color: AppColors.destructive),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -218,6 +242,28 @@ Widget _buildActionButton(BuildContext context, IconData icon, String label) {
       child: Column(
         children: [
           Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildActionOutlinedButton(BuildContext context, IconData icon, String label, VoidCallback onTap, {Color? color}) {
+  final c = color ?? AppColors.primary;
+  return Expanded(
+    child: OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: c,
+        side: BorderSide(color: c.withOpacity(0.5)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 16),
           const SizedBox(height: 4),
           Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
         ],

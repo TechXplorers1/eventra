@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../core/models/app_models.dart';
 
+// PaymentScreen MUST keep Riverpod to save the ticket via appProvider.notifier
+// But we fix the body layout: use AppBar + ListView (not SafeArea+Column+Expanded)
 class PaymentScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> bookingData;
   const PaymentScreen({super.key, required this.bookingData});
@@ -15,151 +16,200 @@ class PaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
+  static const _bg     = Color(0xFF09090B);
+  static const _card   = Color(0xFF121214);
+  static const _purple = Color(0xFF9B66E0);
+  static const _border = Color(0xFF27272A);
+  static const _muted  = Color(0xFFA1A1AA);
+
   String _selectedMethod = 'upi';
 
-  final _paymentMethods = [
-    {'id': 'upi', 'label': 'UPI', 'icon': LucideIcons.smartphone, 'desc': 'Google Pay, PhonePe, Paytm'},
-    {'id': 'card', 'label': 'Credit/Debit Card', 'icon': LucideIcons.creditCard, 'desc': 'Visa, Mastercard, RuPay'},
-    {'id': 'netbanking', 'label': 'Net Banking', 'icon': LucideIcons.building2, 'desc': 'All major banks'},
-    {'id': 'wallet', 'label': 'Wallets', 'icon': LucideIcons.wallet, 'desc': 'Paytm, Amazon Pay'},
+  final _paymentMethods = const [
+    {'id': 'upi',        'label': 'UPI',               'desc': 'Google Pay, PhonePe, Paytm'},
+    {'id': 'card',       'label': 'Credit/Debit Card',  'desc': 'Visa, Mastercard, RuPay'},
+    {'id': 'netbanking', 'label': 'Net Banking',         'desc': 'All major banks'},
+    {'id': 'wallet',     'label': 'Wallets',             'desc': 'Paytm, Amazon Pay'},
   ];
 
   @override
   Widget build(BuildContext context) {
-    final data = widget.bookingData;
+    final data       = widget.bookingData;
     final grandTotal = data['grandTotal'] as double;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  InkWell(
-                    onTap: () => context.pop(),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
-                      child: Icon(LucideIcons.arrowLeft, size: 20, color: AppColors.foreground),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text('Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                ],
-              ),
-            ),
-            
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  // Secure badge
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        Icon(LucideIcons.shieldCheck, size: 16, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Text('Secured by 256-bit encryption', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.green)),
-                      ],
-                    ),
-                  ),
-
-                  Text('Select Payment Method', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                  const SizedBox(height: 12),
-
-                  ..._paymentMethods.map((m) {
-                    final isSelected = _selectedMethod == m['id'];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: InkWell(
-                        onTap: () => setState(() => _selectedMethod = m['id'] as String),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppColors.primary.withOpacity(0.1) : AppColors.secondary,
-                            border: Border.all(color: isSelected ? AppColors.primary.withOpacity(0.3) : Colors.transparent),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40, height: 40,
-                                decoration: BoxDecoration(
-                                  gradient: isSelected ? LinearGradient(colors: [AppColors.primary, AppColors.accent]) : null,
-                                  color: isSelected ? null : AppColors.muted,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(m['icon'] as IconData, size: 18, color: isSelected ? AppColors.primaryForeground : AppColors.mutedForeground),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(m['label'] as String, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                                    Text(m['desc'] as String, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                width: 20, height: 20,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: isSelected ? AppColors.primary : AppColors.mutedForeground, width: 2),
-                                  color: isSelected ? AppColors.primary : Colors.transparent,
-                                ),
-                                child: isSelected
-                                    ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.primaryForeground, shape: BoxShape.circle)))
-                                    : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  const SizedBox(height: 24),
-                  
-                  ElevatedButton(
-                    onPressed: () {
-                      final ticket = BookedTicket(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        eventId: data['eventId'],
-                        eventTitle: data['eventTitle'],
-                        eventDate: data['eventDate'],
-                        eventTime: data['eventTime'],
-                        eventVenue: data['eventVenue'],
-                        ticketType: data['sectionName'],
-                        quantity: data['seatCount'],
-                        seats: List<String>.from(data['seats']),
-                        totalPrice: data['grandTotal'],
-                        qrCode: 'EVT-${data['eventId']}-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}',
-                        bookedAt: DateTime.now().toIso8601String(),
-                        eventImageKey: data['eventImageKey'],
-                      );
-                      ref.read(appProvider.notifier).addBooking(ticket);
-                      context.go('/booking-success', extra: data);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: Text('Pay ₹${grandTotal.toInt()}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryForeground)),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _card,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
+        title: const Text('Payment',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_rounded, size: 14, color: Colors.greenAccent),
+                const SizedBox(width: 4),
+                const Text('Secure', style: TextStyle(fontSize: 12, color: Colors.greenAccent)),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+
+          // ── Amount due ─────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF9B66E0), Color(0xFFB48CE8)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Amount Due', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                    Text('₹${grandTotal.toInt()}',
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white)),
+                  ],
+                ),
+                const Icon(Icons.payment_rounded, size: 48, color: Colors.white30),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          const Text('Select Payment Method',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 12),
+
+          // ── Payment method options ─────────────────────────────────
+          ...['upi', 'card', 'netbanking', 'wallet'].map((id) {
+            final method = _paymentMethods.firstWhere((m) => m['id'] == id);
+            final isSelected = _selectedMethod == id;
+            final icon = {
+              'upi': Icons.phone_android_rounded,
+              'card': Icons.credit_card_rounded,
+              'netbanking': Icons.account_balance_rounded,
+              'wallet': Icons.account_balance_wallet_rounded,
+            }[id]!;
+
+            return GestureDetector(
+              onTap: () => setState(() => _selectedMethod = id),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isSelected ? _purple.withAlpha(30) : _card,
+                  border: Border.all(
+                    color: isSelected ? _purple.withAlpha(120) : _border,
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: isSelected ? _purple : const Color(0xFF27272A),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, size: 20, color: isSelected ? Colors.white : _muted),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(method['label']!,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(method['desc']!,
+                            style: const TextStyle(fontSize: 11, color: Colors.white54)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 20, height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected ? _purple : Colors.transparent,
+                        border: Border.all(color: isSelected ? _purple : _muted, width: 2),
+                      ),
+                      child: isSelected
+                        ? const Center(child: Icon(Icons.check, size: 12, color: Colors.white))
+                        : null,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+
+          const SizedBox(height: 24),
+
+          // ── Pay button ─────────────────────────────────────────────
+          GestureDetector(
+            onTap: () {
+              final ticket = BookedTicket(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                eventId: data['eventId'],
+                eventTitle: data['eventTitle'],
+                eventDate: data['eventDate'],
+                eventTime: data['eventTime'],
+                eventVenue: data['eventVenue'],
+                ticketType: data['sectionName'],
+                quantity: data['seatCount'],
+                seats: List<String>.from(data['seats']),
+                totalPrice: data['grandTotal'],
+                qrCode: 'EVT-${data['eventId']}-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}',
+                bookedAt: DateTime.now().toIso8601String(),
+                eventImageKey: data['eventImageKey'],
+              );
+              ref.read(appProvider.notifier).addBooking(ticket);
+              context.go('/booking-success', extra: data);
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF9B66E0), Color(0xFFB48CE8)]),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(color: _purple.withAlpha(80), blurRadius: 12, offset: const Offset(0, 4))],
+              ),
+              alignment: Alignment.center,
+              child: Text('Pay ₹${grandTotal.toInt()}  →',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Secure notice
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_rounded, size: 12, color: Colors.white38),
+              SizedBox(width: 6),
+              Text('256-bit SSL encrypted · PCI DSS compliant',
+                style: TextStyle(fontSize: 11, color: Colors.white38)),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }

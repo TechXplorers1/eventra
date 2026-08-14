@@ -12,6 +12,11 @@ const List<VenueData> mockVenues = [
     imageUrl: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80',
     amenities: ['AC Hall', 'Stage', 'Parking', 'Catering Kitchen', 'Bridal Suite', 'LED Walls', 'AV System'],
     description: 'A grand 1200-seat convention centre in the heart of BKC. Perfect for corporate galas, weddings, and large concerts.',
+    seatingLayouts: [
+      SeatSection(id: 's1', name: 'VIP Front Row', rows: 4, seatsPerRow: 10, price: 5000, colorHex: 0xFFFFD700, disabledSeats: ['A1', 'A10'], available: 38),
+      SeatSection(id: 's2', name: 'Gold Class', rows: 8, seatsPerRow: 12, price: 3000, colorHex: 0xFFC0C0C0, disabledSeats: [], available: 96),
+      SeatSection(id: 's3', name: 'Balcony', rows: 5, seatsPerRow: 15, price: 1500, colorHex: 0xFFCD7F32, disabledSeats: [], available: 75),
+    ],
   ),
   VenueData(
     id: 'V002',

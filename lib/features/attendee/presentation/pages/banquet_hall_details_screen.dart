@@ -291,7 +291,13 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             InkWell(
-                              onTap: () => context.pop(),
+                              onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                               child: Container(
                                 width: 40, height: 40,
                                 decoration: BoxDecoration(color: AppColors.background.withOpacity(0.6), shape: BoxShape.circle),
@@ -301,7 +307,9 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                             Row(
                               children: [
                                 InkWell(
-                                  onTap: () {},
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied to clipboard')));
+                                  },
                                   child: Container(
                                     width: 40, height: 40,
                                     decoration: BoxDecoration(color: AppColors.background.withOpacity(0.6), shape: BoxShape.circle),
@@ -445,7 +453,9 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening 360° Virtual Tour...')));
+                        },
                         icon: Icon(LucideIcons.compass, size: 14, color: AppColors.primary),
                         label: Text('Launch 360° Virtual Tour', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
@@ -487,7 +497,20 @@ class _BanquetHallDetailsScreenState extends ConsumerState<BanquetHallDetailsScr
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(color: AppColors.secondary, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)),
                       child: TextField(
-                        onChanged: (v) => setState(() => _date = v), // Ideally use a DatePicker
+                        key: ValueKey(_date),
+                        controller: TextEditingController(text: _date),
+                        readOnly: true,
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2030),
+                          );
+                          if (date != null) {
+                            setState(() => _date = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}');
+                          }
+                        },
                         style: TextStyle(color: AppColors.foreground),
                         decoration: InputDecoration(
                           hintText: 'YYYY-MM-DD',

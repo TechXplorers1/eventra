@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/app_models.dart';
 import '../../../../core/data/services_marketplace_data.dart';
+import '../../../../core/utils/whatsapp_utils.dart';
 
 void showServiceBookingDetailModal(BuildContext context, ServiceBooking booking) {
   final svc = findUserService(booking.serviceId);
@@ -33,7 +35,7 @@ void showServiceBookingDetailModal(BuildContext context, ServiceBooking booking)
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                     decoration: const BoxDecoration(
                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                      gradient: LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)]), // gradient-primary equivalent
+                      gradient: LinearGradient(colors: [Color(0xFF9B66E0), Color(0xFFC29CE0)]), // gradient-primary equivalent
                     ),
                     child: Row(
                       children: [
@@ -154,10 +156,10 @@ void showServiceBookingDetailModal(BuildContext context, ServiceBooking booking)
                                   children: [
                                     Expanded(
                                       child: ElevatedButton.icon(
-                                        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Provider will contact you shortly'))),
-                                        icon: Icon(LucideIcons.messageCircle, size: 14, color: AppColors.foreground),
-                                        label: Text('Contact', style: TextStyle(fontSize: 12, color: AppColors.foreground)),
-                                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, padding: const EdgeInsets.symmetric(vertical: 12), elevation: 0),
+                                        onPressed: () => WhatsAppUtils.launchWhatsApp(context, booking.vendorPhone, 'Hi, reaching out regarding my booking for ${booking.serviceName}'),
+                                        icon: const Icon(LucideIcons.messageCircle, size: 14, color: Colors.white),
+                                        label: const Text('Chat on WhatsApp', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 12), elevation: 0),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -167,6 +169,62 @@ void showServiceBookingDetailModal(BuildContext context, ServiceBooking booking)
                                         icon: Icon(LucideIcons.download, size: 14, color: AppColors.primaryForeground),
                                         label: Text('Invoice', style: TextStyle(fontSize: 12, color: AppColors.primaryForeground)),
                                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(vertical: 12), elevation: 0),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          context.push('/write-review/${booking.id}');
+                                        },
+                                        icon: Icon(LucideIcons.star, size: 14, color: AppColors.primary),
+                                        label: Text('Write Review', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.secondary, 
+                                          padding: const EdgeInsets.symmetric(vertical: 12), 
+                                          elevation: 0,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          context.push('/dispute/${booking.id}');
+                                        },
+                                        icon: Icon(LucideIcons.alertTriangle, size: 14, color: AppColors.destructive),
+                                        label: Text('Report Issue', style: TextStyle(fontSize: 11, color: AppColors.destructive, fontWeight: FontWeight.bold)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.secondary, 
+                                          padding: const EdgeInsets.symmetric(vertical: 12), 
+                                          elevation: 0,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          context.push('/cancel-booking/service/${booking.id}');
+                                        },
+                                        icon: Icon(LucideIcons.xCircle, size: 14, color: AppColors.destructive),
+                                        label: Text('Cancel Booking', style: TextStyle(fontSize: 11, color: AppColors.destructive, fontWeight: FontWeight.bold)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.secondary, 
+                                          padding: const EdgeInsets.symmetric(vertical: 12), 
+                                          elevation: 0,
+                                        ),
                                       ),
                                     ),
                                   ],

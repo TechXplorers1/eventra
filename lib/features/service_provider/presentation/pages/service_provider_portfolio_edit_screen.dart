@@ -131,7 +131,13 @@ class _ServiceProviderPortfolioEditScreenState extends ConsumerState<ServiceProv
             decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
             child: Icon(LucideIcons.arrowLeft, size: 18, color: AppColors.foreground),
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
         ),
         title: Text('Edit Portfolio', style: TextStyle(color: AppColors.foreground, fontWeight: FontWeight.bold)),
         actions: [

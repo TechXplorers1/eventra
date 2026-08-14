@@ -32,7 +32,13 @@ class OrganizerServiceProvidersScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () => context.pop(),
+                    onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       width: 40, height: 40,
@@ -68,6 +74,7 @@ class OrganizerServiceProvidersScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +82,7 @@ class OrganizerServiceProvidersScreen extends ConsumerWidget {
                             Container(
                               width: 48, height: 48,
                               decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), borderRadius: BorderRadius.circular(12)),
-                              child: Center(child: Text(vendor.name.split(' ').take(2).map((w) => w[0]).join(''), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryForeground))),
+                              child: Center(child: Text(vendor.name.split(' ').where((w) => w.isNotEmpty).take(2).map((w) => w[0].toUpperCase()).join(''), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryForeground))),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -83,23 +90,39 @@ class OrganizerServiceProvidersScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(vendor.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                                  const SizedBox(height: 4),
-                                  Row(
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
                                     children: [
-                                      Icon(LucideIcons.star, size: 11, color: AppColors.primary),
-                                      const SizedBox(width: 2),
-                                      Text('${vendor.rating}', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                                      const SizedBox(width: 8),
-                                      Text('${vendor.reviews} reviews', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
-                                      const SizedBox(width: 8),
-                                      Icon(LucideIcons.mapPin, size: 10, color: AppColors.mutedForeground),
-                                      const SizedBox(width: 2),
-                                      Text(vendor.city, style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(LucideIcons.star, size: 12, color: AppColors.primary),
+                                          const SizedBox(width: 4),
+                                          Text('${vendor.rating}', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                                        ],
+                                      ),
+                                      Text('${vendor.reviews} reviews', style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(LucideIcons.mapPin, size: 12, color: AppColors.mutedForeground),
+                                          const SizedBox(width: 4),
+                                          Text(vendor.city, style: TextStyle(fontSize: 12, color: AppColors.mutedForeground)),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
@@ -108,47 +131,47 @@ class OrganizerServiceProvidersScreen extends ConsumerWidget {
                               ),
                               child: Text(vendor.availability, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isAvailable ? Colors.greenAccent : isLimited ? Colors.orangeAccent : Colors.redAccent)),
                             ),
+                            const Spacer(),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text('Starting from', style: TextStyle(fontSize: 10, color: AppColors.mutedForeground)),
+                                Text('₹${vendor.startingPrice}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         Container(height: 1, color: AppColors.border),
                         const SizedBox(height: 12),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Starting from', style: TextStyle(fontSize: 10, color: AppColors.mutedForeground)),
-                                Text('₹${vendor.startingPrice}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                              ],
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => context.push('/organizer/services/vendor/$categoryId/${vendor.id}'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.secondary,
+                                  foregroundColor: AppColors.foreground,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                child: const Text('View Portfolio', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
                             ),
-                            Row(
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () => context.push('/organizer/services/vendor/$categoryId/${vendor.id}'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.secondary,
-                                    foregroundColor: AppColors.foreground,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    elevation: 0,
-                                  ),
-                                  child: const Text('View', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => context.push('/organizer/services/vendor/$categoryId/${vendor.id}'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.primaryForeground,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
                                 ),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () => context.push('/organizer/services/vendor/$categoryId/${vendor.id}'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: AppColors.primaryForeground,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    elevation: 0,
-                                  ),
-                                  child: const Text('Hire', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                ),
-                              ],
+                                child: const Text('Hire Vendor', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ),
                             ),
                           ],
                         ),

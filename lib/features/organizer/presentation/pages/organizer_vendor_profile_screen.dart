@@ -40,7 +40,13 @@ class OrganizerVendorProfileScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       InkWell(
-                        onTap: () => context.pop(),
+                        onTap: () {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    Future.microtask(() => context.go('/'));
+  }
+},
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
                           width: 40, height: 40,
@@ -69,7 +75,7 @@ class OrganizerVendorProfileScreen extends ConsumerWidget {
                                 Container(
                                   width: 64, height: 64,
                                   decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]), borderRadius: BorderRadius.circular(16)),
-                                  child: Center(child: Text(vendor.name.split(' ').take(2).map((w) => w[0]).join(''), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryForeground))),
+                                  child: Center(child: Text(vendor.name.split(' ').where((w) => w.isNotEmpty).take(2).map((w) => w[0].toUpperCase()).join(''), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryForeground))),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
