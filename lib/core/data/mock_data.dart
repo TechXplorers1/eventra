@@ -112,83 +112,91 @@ const List<SeatSection> _mockLayouts = [
   SeatSection(id: 'ga', name: 'General Admission', price: 2499, colorHex: 0xFF00BFFF, rows: 15, seatsPerRow: 30, available: 450),
 ];
 
+String _getFormattedDate(int daysFromNow) {
+  final d = DateTime.now().add(Duration(days: daysFromNow));
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${months[d.month - 1]} ${d.day}, ${d.year}';
+}
+
+final int _daysToSat = (6 - DateTime.now().weekday) % 7;
+
 final List<EventData> mockEvents = [
   EventData(
-    id: '1', title: 'Coldplay: Music of the Spheres', date: 'Mar 15, 2026', time: '7:00 PM',
+    id: '1', title: 'Coldplay: Music of the Spheres', date: _getFormattedDate(0), time: '7:00 PM',
     venue: 'DY Patil Stadium', city: 'Mumbai', category: 'Music', price: 2499,
     description: 'Experience the magic of Coldplay live in concert. A mesmerizing journey through their greatest hits with spectacular visuals and an unforgettable atmosphere.',
     imageKey: 'concert', offers: ['20% Off'], featured: true, spotlight: true,
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '2', title: 'IPL Finals 2026', date: 'May 28, 2026', time: '7:30 PM',
+    id: '2', title: 'IPL Finals 2026', date: _getFormattedDate(1), time: '7:30 PM',
     venue: 'Narendra Modi Stadium', city: 'Ahmedabad', category: 'Sports', price: 1999,
     description: 'Witness the grand finale of IPL 2026. The biggest cricket event of the year with electrifying atmosphere.',
     imageKey: 'sports', offers: ['Early Bird'], featured: true,
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '3', title: 'Zakir Khan Live', date: 'Apr 5, 2026', time: '8:00 PM',
+    id: '3', title: 'Zakir Khan Live', date: _getFormattedDate(_daysToSat == 0 ? 0 : _daysToSat), time: '8:00 PM',
     venue: 'JIO Convention Centre', city: 'Mumbai', category: 'Comedy', price: 999,
     description: 'Zakir Khan brings his hilarious new tour to Mumbai. An evening of non-stop laughter and relatable storytelling.',
     imageKey: 'comedy', featured: true, spotlight: true,
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '4', title: 'Sunburn Festival 2026', date: 'Dec 28, 2026', time: '4:00 PM',
+    id: '4', title: 'Sunburn Festival 2026', date: _getFormattedDate(_daysToSat + 1), time: '4:00 PM',
     venue: 'Vagator Beach', city: 'Goa', category: 'Nightlife', price: 3499,
     description: 'Asia\'s biggest electronic dance music festival returns with world-class DJs and an incredible beachside experience.',
     imageKey: 'nightlife', offers: ['30% Off'], featured: true,
   ),
   EventData(
-    id: '5', title: 'Kathak Mahotsav', date: 'Mar 22, 2026', time: '6:30 PM',
+    id: '5', title: 'Kathak Mahotsav', date: _getFormattedDate(4), time: '6:30 PM',
     venue: 'Kamani Auditorium', city: 'Delhi', category: 'Arts', price: 799,
     description: 'A celebration of classical Indian dance featuring maestros of Kathak performing timeless compositions.',
     imageKey: 'arts', spotlight: true,
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '6', title: 'Cirque du Soleil: Alegría', date: 'Apr 12, 2026', time: '7:00 PM',
+    id: '6', title: 'Cirque du Soleil: Alegría', date: _getFormattedDate(7), time: '7:00 PM',
     venue: 'NSCI Dome', city: 'Mumbai', category: 'Performances', price: 4999,
     description: 'The world-renowned circus spectacle brings its breathtaking acrobatics and artistry to India.',
     imageKey: 'performance', offers: ['VIP Upgrade'], featured: true, spotlight: true,
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '7', title: 'Arijit Singh Live', date: 'Mar 29, 2026', time: '7:30 PM',
+    id: '7', title: 'Arijit Singh Live', date: _getFormattedDate(12), time: '7:30 PM',
     venue: 'Jawaharlal Nehru Stadium', city: 'Delhi', category: 'Music', price: 1799,
     description: 'The voice of a generation performs his greatest romantic ballads in an intimate concert setting.',
     imageKey: 'concert', offers: ['15% Off'],
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '8', title: 'Pro Kabaddi League', date: 'Jun 10, 2026', time: '8:00 PM',
+    id: '8', title: 'Pro Kabaddi League', date: _getFormattedDate(18), time: '8:00 PM',
     venue: 'Gachibowli Stadium', city: 'Hyderabad', category: 'Sports', price: 499,
     description: 'High-energy kabaddi action in the Pro Kabaddi League. Witness the thrill of India\'s fastest growing sport.',
     imageKey: 'sports',
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '9', title: 'Biswa Kalyan Rath', date: 'Apr 18, 2026', time: '8:30 PM',
+    id: '9', title: 'Biswa Kalyan Rath', date: _getFormattedDate(25), time: '8:30 PM',
     venue: 'Phoenix Marketcity', city: 'Bangalore', category: 'Comedy', price: 799,
     description: 'Biswa brings his signature observational comedy to Bangalore. Sharp, witty, and thought-provoking.',
     imageKey: 'comedy',
     seatingLayouts: _mockLayouts,
   ),
   EventData(
-    id: '10', title: 'Echoes Music Fest', date: 'May 2, 2026', time: '5:00 PM',
+    id: '10', title: 'Echoes Music Fest', date: _getFormattedDate(32), time: '5:00 PM',
     venue: 'Palace Grounds', city: 'Bangalore', category: 'Nightlife', price: 2999,
     description: 'A multi-genre music festival featuring indie, electronic, and hip-hop artists from around the world.',
     imageKey: 'nightlife', offers: ['Group Deal'],
   ),
   EventData(
-    id: '11', title: 'Contemporary Art Exhibition', date: 'Mar 10, 2026', time: '10:00 AM',
+    id: '11', title: 'Contemporary Art Exhibition', date: _getFormattedDate(45), time: '10:00 AM',
     venue: 'National Gallery', city: 'Delhi', category: 'Arts', price: 299,
     description: 'Explore cutting-edge contemporary art from emerging Indian artists pushing creative boundaries.',
     imageKey: 'arts',
   ),
   EventData(
-    id: '12', title: 'Broadway Musical: Hamilton', date: 'Jun 5, 2026', time: '6:00 PM',
+    id: '12', title: 'Broadway Musical: Hamilton', date: _getFormattedDate(60), time: '6:00 PM',
     venue: 'Royal Opera House', city: 'Mumbai', category: 'Performances', price: 5999,
     description: 'The revolutionary musical sensation comes to India. Experience the story that changed Broadway forever.',
     imageKey: 'performance', offers: ['Premium Seats'], spotlight: true,

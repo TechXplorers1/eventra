@@ -26,6 +26,8 @@ import '../../features/attendee/presentation/pages/service_vendors_screen.dart';
 import '../../features/attendee/presentation/pages/vendor_profile_screen.dart';
 import '../../features/attendee/presentation/pages/service_booking_screen.dart';
 import '../../features/attendee/presentation/pages/saved_screen.dart';
+import '../../features/attendee/presentation/pages/banquet_halls_screen.dart';
+import '../../features/attendee/presentation/pages/banquet_hall_details_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_dashboard_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_events_screen.dart';
 import '../../features/organizer/presentation/pages/organizer_wallet_screen.dart';
@@ -217,7 +219,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/services', builder: (_, __) => const ServicesMarketplaceScreen()),
       GoRoute(
         path: '/services/:id',
-        builder: (_, s) => ServiceVendorsScreen(id: s.pathParameters['id']!),
+        builder: (_, s) {
+          final id = s.pathParameters['id']!;
+          if (id == 'banquet-hall') {
+            return const BanquetHallsScreen();
+          }
+          return ServiceVendorsScreen(id: id);
+        },
       ),
       GoRoute(
         path: '/services/:id/vendor/:vendorId',
@@ -292,8 +300,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/saved',              redirect: (_, __) => '/tickets'),
       GoRoute(path: '/all-events',         redirect: (_, __) => '/explore'),
       GoRoute(path: '/category/:category', redirect: (_, __) => '/explore'),
-      GoRoute(path: '/banquet-halls',      redirect: (_, __) => '/services'),
-      GoRoute(path: '/banquet-halls/:id',  redirect: (_, __) => '/services'),
+      GoRoute(
+        path: '/banquet-halls',
+        builder: (_, __) => const BanquetHallsScreen(),
+      ),
+      GoRoute(
+        path: '/banquet-halls/:id',
+        builder: (_, s) => BanquetHallDetailsScreen(id: s.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/seats/:id',
         builder: (_, s) => SeatSelectionScreen(eventId: s.pathParameters['id']!),

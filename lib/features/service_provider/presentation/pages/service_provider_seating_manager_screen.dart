@@ -312,46 +312,73 @@ class _SeatingDesignerModalState extends ConsumerState<_SeatingDesignerModal> {
               child: Center(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(sec.rows, (r) {
-                      final rowLetter = String.fromCharCode(65 + r);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(width: 20,
-                              child: Text(rowLetter,
-                                style: const TextStyle(fontSize: 9, color: Colors.white38))),
-                            const SizedBox(width: 6),
-                            ...List.generate(sec.seatsPerRow, (c) {
-                              final seatId = '$rowLetter${c + 1}';
-                              final isDisabled = _disabledSeats.contains(seatId);
+                  child: Builder(builder: (context) {
+                    int activeRowCounter = 0;
+                    final Map<int, String> rowLetterMap = {};
+                    for (int r = 0; r < sec.rows; r++) {
+                      final physLetter = String.fromCharCode(65 + r);
+                      bool isRowActive = false;
+                      for (int c = 0; c < sec.seatsPerRow; c++) {
+                        if (!_disabledSeats.contains('$physLetter${c + 1}')) {
+                          isRowActive = true;
+                          break;
+                        }
+                      }
+                      if (isRowActive) {
+                        rowLetterMap[r] = String.fromCharCode(65 + activeRowCounter);
+                        activeRowCounter++;
+                      } else {
+                        rowLetterMap[r] = '';
+                      }
+                    }
 
-                              return GestureDetector(
-                                onTap: () => _toggleSeat(seatId),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  width: 22, height: 22,
-                                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                                  decoration: BoxDecoration(
-                                    color: isDisabled ? Colors.transparent : col,
-                                    border: Border.all(color: isDisabled ? AppColors.border : col, width: 1),
-                                    borderRadius: BorderRadius.circular(4),
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(sec.rows, (r) {
+                        final physicalRowLetter = String.fromCharCode(65 + r);
+                        final displayRowLetter = rowLetterMap[r] ?? '';
+                        int activeSeatNum = 0;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(width: 20,
+                                child: Text(displayRowLetter,
+                                  style: const TextStyle(fontSize: 9, color: Colors.white38))),
+                              const SizedBox(width: 6),
+                              ...List.generate(sec.seatsPerRow, (c) {
+                                final seatId = '$physicalRowLetter${c + 1}';
+                                final isDisabled = _disabledSeats.contains(seatId);
+                                if (!isDisabled) {
+                                  activeSeatNum++;
+                                }
+                                final currentSeatDisplay = activeSeatNum;
+
+                                return GestureDetector(
+                                  onTap: () => _toggleSeat(seatId),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    width: 22, height: 22,
+                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    decoration: BoxDecoration(
+                                      color: isDisabled ? Colors.transparent : col,
+                                      border: Border.all(color: isDisabled ? AppColors.border : col, width: 1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: isDisabled
+                                      ? Icon(LucideIcons.x, size: 12, color: AppColors.border)
+                                      : Text('$currentSeatDisplay', style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: Colors.white)),
                                   ),
-                                  alignment: Alignment.center,
-                                  child: isDisabled
-                                    ? Icon(LucideIcons.x, size: 12, color: AppColors.border)
-                                    : Text('${c + 1}', style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: Colors.white)),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        );
+                      }),
+                    );
+                  }),
                 ),
               ),
             ),

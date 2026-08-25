@@ -101,6 +101,54 @@ class _ServiceProviderReviewsScreenState extends ConsumerState<ServiceProviderRe
   dynamic _filter = 'all'; // 'all' or int (1-5)
   String _sort = 'recent'; // 'recent', 'high', 'low'
 
+  void _confirmDeleteReview(_ProviderReview review) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(LucideIcons.trash2, color: Colors.redAccent, size: 22),
+            const SizedBox(width: 10),
+            Text('Delete Review', style: TextStyle(color: AppColors.foreground, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete this review by ${review.customer}? This action cannot be undone.',
+          style: TextStyle(color: AppColors.mutedForeground, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppColors.mutedForeground)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _items.removeWhere((r) => r.id == review.id);
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Review deleted successfully!'),
+                  backgroundColor: Colors.redAccent,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showReplyModal(_ProviderReview review) {
     String replyText = review.reply ?? '';
 
@@ -483,15 +531,30 @@ class _ServiceProviderReviewsScreenState extends ConsumerState<ServiceProviderRe
                                                 Text('Helpful: ${r.helpful}', style: TextStyle(fontSize: 11, color: AppColors.mutedForeground)),
                                               ],
                                             ),
-                                            InkWell(
-                                              onTap: () => _showReplyModal(r),
-                                              child: Row(
-                                                children: [
-                                                  Icon(LucideIcons.messageCircle, size: 11, color: AppColors.primary),
-                                                  const SizedBox(width: 4),
-                                                  Text(r.reply != null ? 'Edit Reply' : 'Reply', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                                                ],
-                                              ),
+                                            Row(
+                                              children: [
+                                                InkWell(
+                                                  onTap: () => _showReplyModal(r),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(LucideIcons.messageCircle, size: 11, color: AppColors.primary),
+                                                      const SizedBox(width: 4),
+                                                      Text(r.reply != null ? 'Edit Reply' : 'Reply', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 14),
+                                                InkWell(
+                                                  onTap: () => _confirmDeleteReview(r),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(LucideIcons.trash2, size: 11, color: Colors.redAccent),
+                                                      const SizedBox(width: 4),
+                                                      Text('Delete', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),

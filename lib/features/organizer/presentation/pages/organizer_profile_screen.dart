@@ -36,6 +36,8 @@ class OrganizerProfileScreen extends ConsumerWidget {
 
                 // ── Header Row ────────────────────────────────────────────
                 Row(children: [
+                  const EvBackButton(),
+                  const SizedBox(width: 12),
                   Text('Profile', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.foreground)),
                   const Spacer(),
                   _IBtn(icon: LucideIcons.settings2, onTap: () => context.push('/settings')),

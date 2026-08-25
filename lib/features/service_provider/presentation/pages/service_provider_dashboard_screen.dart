@@ -45,6 +45,8 @@ class ServiceProviderDashboardScreen extends ConsumerWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const EvBackButton(),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text('Good ${_greeting()},', style: TextStyle(fontSize: 13, color: AppColors.mutedForeground)),

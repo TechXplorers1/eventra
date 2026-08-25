@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../core/models/app_models.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
+import '../../../../shared/widgets/ev_components.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -133,6 +134,7 @@ class _ServiceProviderCalendarScreenState
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
+        leading: const EvBackButton(),
         title: Text('My Calendar',
             style: TextStyle(color: AppColors.foreground, fontWeight: FontWeight.bold)),
         actions: [
@@ -329,6 +331,36 @@ class _DayStatus {
   const _DayStatus({required this.isBlocked, required this.hasGig, required this.hasEntry, this.hasDirectBooking = false});
 }
 
+class _DiagonalStrikePainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+
+  const _DiagonalStrikePainter({
+    required this.color,
+    this.strokeWidth = 1.5,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Draw diagonal strike line from top-right corner to bottom-left corner across the cell
+    canvas.drawLine(
+      Offset(size.width - 4, 4),
+      Offset(4, size.height - 4),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DiagonalStrikePainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
+  }
+}
+
 class _DayCell extends StatelessWidget {
   final DateTime day;
   final bool isSelected;
@@ -358,6 +390,33 @@ class _DayCell extends StatelessWidget {
       borderColor = const Color(0xFFEF4444).withOpacity(0.4);
     }
 
+    Widget cellContent = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '${day.day}',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 11,
+            fontWeight: isToday || isSelected ? FontWeight.w800 : FontWeight.w500,
+            decoration: status.isBlocked ? TextDecoration.lineThrough : null,
+            decorationColor: isSelected ? Colors.white70 : const Color(0xFFEF4444),
+            decorationThickness: 1.5,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (status.hasGig) _Dot(color: isSelected ? Colors.white : AppColors.primary),
+            if (status.hasDirectBooking && !status.hasGig) _Dot(color: isSelected ? Colors.white : const Color(0xFF06B6D4)),
+            if (status.isBlocked && !isSelected) _Dot(color: const Color(0xFFEF4444)),
+            if (status.hasEntry) _Dot(color: const Color(0xFFF59E0B)),
+          ],
+        ),
+      ],
+    );
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -368,29 +427,15 @@ class _DayCell extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: isToday && !isSelected ? AppColors.primary : borderColor, width: isToday && !isSelected ? 1.5 : 1),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '${day.day}',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 11,
-                fontWeight: isToday || isSelected ? FontWeight.w800 : FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (status.hasGig) _Dot(color: isSelected ? Colors.white : AppColors.primary),
-                if (status.hasDirectBooking && !status.hasGig) _Dot(color: isSelected ? Colors.white : const Color(0xFF06B6D4)),
-                if (status.isBlocked && !isSelected) _Dot(color: const Color(0xFFEF4444)),
-                if (status.hasEntry) _Dot(color: const Color(0xFFF59E0B)),
-              ],
-            ),
-          ],
-        ),
+        child: status.isBlocked
+            ? CustomPaint(
+                foregroundPainter: _DiagonalStrikePainter(
+                  color: isSelected ? Colors.white70 : const Color(0xFFEF4444),
+                  strokeWidth: 1.5,
+                ),
+                child: cellContent,
+              )
+            : cellContent,
       ),
     );
   }

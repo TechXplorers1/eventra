@@ -30,17 +30,41 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
     final booked = <String>{};
     final best = <String>{};
     final seed = sec.id.codeUnitAt(0);
+    int activeRowCounter = 0;
     for (int r = 0; r < sec.rows; r++) {
+      final physLetter = String.fromCharCode(65 + r);
+      bool isRowActive = false;
       for (int c = 0; c < sec.seatsPerRow; c++) {
-        final id = '${String.fromCharCode(65 + r)}${c + 1}';
+        if (!sec.disabledSeats.contains('$physLetter${c + 1}')) {
+          isRowActive = true;
+          break;
+        }
+      }
+      if (!isRowActive) continue;
+
+      final activeRowLetter = String.fromCharCode(65 + activeRowCounter);
+      activeRowCounter++;
+
+      int activeSeatNum = 0;
+      for (int c = 0; c < sec.seatsPerRow; c++) {
+        final physicalId = '$physLetter${c + 1}';
+        if (sec.disabledSeats.contains(physicalId)) continue;
+        activeSeatNum++;
+        final id = '$activeRowLetter$activeSeatNum';
         final k = (r * 7 + c * 3 + seed) % 11;
         if (k == 0 || k == 4) booked.add(id);
       }
       if (r >= (sec.rows * 0.3).floor() && r <= (sec.rows * 0.6).floor()) {
-        final mid = (sec.seatsPerRow / 2).floor();
-        for (int c = mid - 2; c <= mid + 1; c++) {
-          final id = '${String.fromCharCode(65 + r)}${c + 1}';
-          if (!booked.contains(id)) best.add(id);
+        int midActive = 0;
+        for (int c = 0; c < sec.seatsPerRow; c++) {
+          final physicalId = '$physLetter${c + 1}';
+          if (sec.disabledSeats.contains(physicalId)) continue;
+          midActive++;
+          final mid = (sec.seatsPerRow / 2).floor();
+          if (c >= mid - 2 && c <= mid + 1) {
+            final id = '$activeRowLetter$midActive';
+            if (!booked.contains(id)) best.add(id);
+          }
         }
       }
     }
@@ -316,64 +340,89 @@ class _SeatSelectionScreenState extends ConsumerState<SeatSelectionScreen> {
             padding: const EdgeInsets.all(16),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(sec.rows, (r) {
-                  final rowLetter = String.fromCharCode(65 + r);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        SizedBox(width: 20,
-                          child: Text(rowLetter,
-                            style: const TextStyle(fontSize: 9, color: Colors.white38))),
-                        const SizedBox(width: 6),
-                        ...List.generate(sec.seatsPerRow, (c) {
-                          final seatId = '$rowLetter${c + 1}';
-                          if (sec.disabledSeats.contains(seatId)) {
-                            return Container(
-                              width: 22, height: 22,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                            );
-                          }
+              child: Builder(builder: (context) {
+                int activeRowCounter = 0;
+                final Map<int, String> rowLetterMap = {};
+                for (int r = 0; r < sec.rows; r++) {
+                  final physLetter = String.fromCharCode(65 + r);
+                  bool isRowActive = false;
+                  for (int c = 0; c < sec.seatsPerRow; c++) {
+                    if (!sec.disabledSeats.contains('$physLetter${c + 1}')) {
+                      isRowActive = true;
+                      break;
+                    }
+                  }
+                  if (isRowActive) {
+                    rowLetterMap[r] = String.fromCharCode(65 + activeRowCounter);
+                    activeRowCounter++;
+                  } else {
+                    rowLetterMap[r] = '';
+                  }
+                }
 
-                          final isBooked = _bookedSeats.contains(seatId);
-                          final isSelected = _selectedSeats.contains(seatId);
-                          final isBest = _bestSeats.contains(seatId) && !isBooked && !isSelected;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(sec.rows, (r) {
+                    final physicalRowLetter = String.fromCharCode(65 + r);
+                    final displayRowLetter = rowLetterMap[r] ?? '';
+                    int activeSeatNum = 0;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 20,
+                            child: Text(displayRowLetter,
+                              style: const TextStyle(fontSize: 9, color: Colors.white38))),
+                          const SizedBox(width: 6),
+                          ...List.generate(sec.seatsPerRow, (c) {
+                            final physicalSeatId = '$physicalRowLetter${c + 1}';
+                            if (sec.disabledSeats.contains(physicalSeatId)) {
+                              return Container(
+                                width: 22, height: 22,
+                                margin: const EdgeInsets.symmetric(horizontal: 2),
+                              );
+                            }
 
-                          Color bg, border;
-                          if (isBooked) {
-                            bg = const Color(0xFF27272A); border = Colors.transparent;
-                          } else if (isSelected) {
-                            bg = sectionColor; border = sectionColor;
-                          } else if (isBest) {
-                            bg = sectionColor.withAlpha(60); border = sectionColor;
-                          } else {
-                            bg = _border; border = const Color(0xFF27272A);
-                          }
+                            activeSeatNum++;
+                            final activeSeatId = '$displayRowLetter$activeSeatNum';
+                            final isBooked = _bookedSeats.contains(activeSeatId) || _bookedSeats.contains(physicalSeatId);
+                            final isSelected = _selectedSeats.contains(activeSeatId);
+                            final isBest = _bestSeats.contains(activeSeatId) && !isBooked && !isSelected;
 
-                          return GestureDetector(
-                            onTap: () => _toggleSeat(seatId),
-                            child: Container(
-                              width: 22, height: 22,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                              decoration: BoxDecoration(
-                                color: bg,
-                                border: Border.all(color: border, width: 1),
-                                borderRadius: BorderRadius.circular(4),
+                            Color bg, border;
+                            if (isBooked) {
+                              bg = const Color(0xFF27272A); border = Colors.transparent;
+                            } else if (isSelected) {
+                              bg = sectionColor; border = sectionColor;
+                            } else if (isBest) {
+                              bg = sectionColor.withAlpha(60); border = sectionColor;
+                            } else {
+                              bg = _border; border = const Color(0xFF27272A);
+                            }
+
+                            return GestureDetector(
+                              onTap: () => _toggleSeat(activeSeatId),
+                              child: Container(
+                                width: 22, height: 22,
+                                margin: const EdgeInsets.symmetric(horizontal: 2),
+                                decoration: BoxDecoration(
+                                  color: bg,
+                                  border: Border.all(color: border, width: 1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text('$activeSeatNum',
+                                  style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold,
+                                    color: isSelected ? Colors.white : Colors.white54)),
                               ),
-                              alignment: Alignment.center,
-                              child: Text('${c + 1}',
-                                style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold,
-                                  color: isSelected ? Colors.white : Colors.white54)),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  );
-                }),
-              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    );
+                  }),
+                );
+              }),
             ),
           ),
         ),

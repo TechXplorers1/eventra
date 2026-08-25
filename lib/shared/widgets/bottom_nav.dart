@@ -67,75 +67,83 @@ class BottomNav extends ConsumerWidget {
       }
     }
 
-    return Positioned(
-      bottom: 12,
-      left: 16,
-      right: 16,
-      child: SafeArea(
-        child: Container(
-          height: 66,
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(80),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-              BoxShadow(
-                color: AppColors.primary.withAlpha(20),
-                blurRadius: 32,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: List.generate(tabs.length, (idx) {
-              final tab = tabs[idx];
-              final isActive = idx == activeIdx;
-              final isCreate = tab.label == 'Create';
+    final navContent = SafeArea(
+      child: Container(
+        height: 66,
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(80),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: AppColors.primary.withAlpha(20),
+              blurRadius: 32,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: List.generate(tabs.length, (idx) {
+            final tab = tabs[idx];
+            final isActive = idx == activeIdx;
+            final isCreate = tab.label == 'Create';
 
-              if (isCreate) {
-                // Special "Create" FAB-style tab for Organizer
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => context.go(tab.path),
-                    child: Center(
-                      child: Container(
-                        width: 48, height: 48,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withAlpha(80),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(LucideIcons.plus, color: Colors.white, size: 22),
+            if (isCreate) {
+              // Special "Create" FAB-style tab for Organizer
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => context.go(tab.path),
+                  child: Center(
+                    child: Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withAlpha(80),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
+                      child: const Icon(LucideIcons.plus, color: Colors.white, size: 20),
                     ),
                   ),
-                );
-              }
-
-              return Expanded(
-                child: _NavTabItem(
-                  tab: tab,
-                  isActive: isActive,
-                  onTap: () => context.go(tab.path),
                 ),
               );
-            }),
-          ),
+            }
+
+            return Expanded(
+              child: _NavTabItem(
+                tab: tab,
+                isActive: isActive,
+                onTap: () => context.go(tab.path),
+              ),
+            );
+          }),
         ),
       ),
     );
+
+    final isInsideStack = context.findAncestorWidgetOfExactType<Stack>() != null;
+    if (isInsideStack) {
+      return Positioned(
+        bottom: 0,
+        left: 0,
+        right: 0,
+        child: navContent,
+      );
+    }
+
+    return navContent;
   }
 }
 
@@ -157,14 +165,14 @@ class _NavTabItem extends StatelessWidget {
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: isActive ? AppColors.primary.withAlpha(28) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               tab.icon,
-              size: 20,
+              size: 19,
               color: isActive ? AppColors.primary : AppColors.mutedForeground,
             ),
           ),
@@ -176,7 +184,11 @@ class _NavTabItem extends StatelessWidget {
               fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
               color: isActive ? AppColors.primary : AppColors.mutedForeground,
             ),
-            child: Text(tab.label),
+            child: Text(
+              tab.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

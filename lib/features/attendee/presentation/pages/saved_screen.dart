@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../shared/widgets/event_card.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
+import '../../../../shared/widgets/ev_components.dart';
 
 class SavedScreen extends ConsumerWidget {
   const SavedScreen({super.key});
@@ -26,7 +27,13 @@ class SavedScreen extends ConsumerWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                  child: Text('Saved Events', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                  child: Row(
+                    children: [
+                      const EvBackButton(),
+                      const SizedBox(width: 12),
+                      Text('Saved Events', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.foreground)),
+                    ],
+                  ),
                 ),
                 Expanded(
                   child: savedEvents.isEmpty

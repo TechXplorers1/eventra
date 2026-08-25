@@ -1359,44 +1359,68 @@ class _OrganizerCreateEventScreenState extends ConsumerState<OrganizerCreateEven
                     const SizedBox(height: 16),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: List.generate(sec.rows, (r) {
-                          final rowLetter = String.fromCharCode(65 + r);
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              children: [
-                                SizedBox(width: 20,
-                                  child: Text(rowLetter,
-                                    style: TextStyle(fontSize: 9, color: AppColors.mutedForeground))),
-                                const SizedBox(width: 6),
-                                ...List.generate(sec.seatsPerRow, (c) {
-                                  final seatId = '$rowLetter${c + 1}';
-                                  if (sec.disabledSeats.contains(seatId)) {
+                      child: Builder(builder: (context) {
+                        int activeRowCounter = 0;
+                        final Map<int, String> rowLetterMap = {};
+                        for (int r = 0; r < sec.rows; r++) {
+                          final physLetter = String.fromCharCode(65 + r);
+                          bool isRowActive = false;
+                          for (int c = 0; c < sec.seatsPerRow; c++) {
+                            if (!sec.disabledSeats.contains('$physLetter${c + 1}')) {
+                              isRowActive = true;
+                              break;
+                            }
+                          }
+                          if (isRowActive) {
+                            rowLetterMap[r] = String.fromCharCode(65 + activeRowCounter);
+                            activeRowCounter++;
+                          } else {
+                            rowLetterMap[r] = '';
+                          }
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: List.generate(sec.rows, (r) {
+                            final physicalRowLetter = String.fromCharCode(65 + r);
+                            final displayRowLetter = rowLetterMap[r] ?? '';
+                            int activeSeatNum = 0;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                children: [
+                                  SizedBox(width: 20,
+                                    child: Text(displayRowLetter,
+                                      style: TextStyle(fontSize: 9, color: AppColors.mutedForeground))),
+                                  const SizedBox(width: 6),
+                                  ...List.generate(sec.seatsPerRow, (c) {
+                                    final seatId = '$physicalRowLetter${c + 1}';
+                                    if (sec.disabledSeats.contains(seatId)) {
+                                      return Container(
+                                        width: 22, height: 22,
+                                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                                      );
+                                    }
+                                    activeSeatNum++;
                                     return Container(
                                       width: 22, height: 22,
                                       margin: const EdgeInsets.symmetric(horizontal: 2),
+                                      decoration: BoxDecoration(
+                                        color: col.withOpacity(0.15),
+                                        border: Border.all(color: col, width: 1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text('$activeSeatNum',
+                                        style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: AppColors.foreground)),
                                     );
-                                  }
-                                  return Container(
-                                    width: 22, height: 22,
-                                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                                    decoration: BoxDecoration(
-                                      color: col.withOpacity(0.15),
-                                      border: Border.all(color: col, width: 1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text('${c + 1}',
-                                      style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: AppColors.foreground)),
-                                  );
-                                }),
-                              ],
-                            ),
-                          );
-                        }),
-                      ),
+                                  }),
+                                ],
+                              ),
+                            );
+                          }),
+                        );
+                      }),
                     ),
                   ],
                 ),

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../core/data/mock_data.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
+import '../../../../shared/widgets/ev_components.dart';
 import '../widgets/ticket_detail_modal.dart';
 import '../widgets/service_booking_detail_modal.dart';
 
@@ -55,7 +56,13 @@ class _TicketsScreenState extends ConsumerState<TicketsScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(AppSpacing.pagePaddingH, AppSpacing.pagePaddingV, AppSpacing.pagePaddingH, 8),
-                  child: Text('My Bookings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.foreground)),
+                  child: Row(
+                    children: [
+                      const EvBackButton(),
+                      const SizedBox(width: 12),
+                      Text('My Bookings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.foreground)),
+                    ],
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

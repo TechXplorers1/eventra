@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
+import '../../../../shared/widgets/ev_components.dart';
 import '../../../../core/models/app_models.dart';
 
 class ServiceProviderRequestsScreen extends ConsumerStatefulWidget {
@@ -69,6 +70,7 @@ class _ServiceProviderRequestsScreenState extends ConsumerState<ServiceProviderR
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
+        leading: const EvBackButton(),
         title: Text('Booking Requests', style: TextStyle(color: AppColors.foreground, fontWeight: FontWeight.bold)),
         bottom: TabBar(
           controller: _tabController,

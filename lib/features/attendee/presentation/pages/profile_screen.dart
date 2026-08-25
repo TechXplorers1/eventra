@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/providers/app_provider.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
 import '../../../../shared/widgets/ev_badge.dart';
+import '../../../../shared/widgets/ev_components.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -34,6 +35,8 @@ class ProfileScreen extends ConsumerWidget {
 
                 // ── Header ────────────────────────────────────────────────
                 Row(children: [
+                  const EvBackButton(),
+                  const SizedBox(width: 12),
                   Text('Profile',
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.foreground)),
                   const Spacer(),

@@ -22,34 +22,68 @@ class _AllEventsScreenState extends ConsumerState<AllEventsScreen> {
   String _catFilter = 'All';
   String _timeFilter = 'All';
 
+  DateTime? _parseEventDate(String dateStr) {
+    if (dateStr.isEmpty) return null;
+    final direct = DateTime.tryParse(dateStr);
+    if (direct != null) return direct;
+
+    try {
+      final parts = dateStr.replaceAll(',', '').trim().split(RegExp(r'\s+'));
+      if (parts.length >= 3) {
+        final monthStr = parts[0].toLowerCase();
+        final day = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+
+        const monthMap = {
+          'jan': 1, 'january': 1,
+          'feb': 2, 'february': 2,
+          'mar': 3, 'march': 3,
+          'apr': 4, 'april': 4,
+          'may': 5,
+          'jun': 6, 'june': 6,
+          'jul': 7, 'july': 7,
+          'aug': 8, 'august': 8,
+          'sep': 9, 'september': 9,
+          'oct': 10, 'october': 10,
+          'nov': 11, 'november': 11,
+          'dec': 12, 'december': 12,
+        };
+
+        final month = monthMap[monthStr];
+        if (month != null) {
+          return DateTime(year, month, day);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   List<EventData> _applyFilters(List<EventData> source) {
     var list = _catFilter == 'All'
         ? source
         : source.where((e) => e.category == _catFilter).toList();
-    if (_timeFilter != 'All') {
+    if (_timeFilter != 'All' && _timeFilter != 'All Time') {
       final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
       list = list.where((e) {
-        try {
-          final parts = e.date.split(' ');
-          final months = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12};
-          final month = months[parts[0]] ?? 1;
-          final day = int.parse(parts[1].replaceAll(',', ''));
-          final year = int.parse(parts[2]);
-          final eventDate = DateTime(year, month, day);
-          if (_timeFilter == 'Today') {
-            return eventDate.year == now.year && eventDate.month == now.month && eventDate.day == now.day;
-          } else if (_timeFilter == 'Tomorrow') {
-            final tom = now.add(const Duration(days: 1));
-            return eventDate.year == tom.year && eventDate.month == tom.month && eventDate.day == tom.day;
-          } else if (_timeFilter == 'This Weekend') {
-            final weekday = now.weekday;
-            final daysToSat = (6 - weekday) % 7;
-            final sat = now.add(Duration(days: daysToSat));
-            final sun = sat.add(const Duration(days: 1));
-            return (eventDate.year == sat.year && eventDate.month == sat.month && eventDate.day == sat.day) ||
-                   (eventDate.year == sun.year && eventDate.month == sun.month && eventDate.day == sun.day);
-          }
-        } catch (_) {}
+        final eventDate = _parseEventDate(e.date);
+        if (eventDate == null) return false;
+
+        final eDay = DateTime(eventDate.year, eventDate.month, eventDate.day);
+        if (_timeFilter == 'Today') {
+          return eDay.year == today.year && eDay.month == today.month && eDay.day == today.day;
+        } else if (_timeFilter == 'Tomorrow') {
+          final tom = today.add(const Duration(days: 1));
+          return eDay.year == tom.year && eDay.month == tom.month && eDay.day == tom.day;
+        } else if (_timeFilter == 'This Weekend') {
+          final daysToSat = (6 - today.weekday) % 7;
+          final sat = today.add(Duration(days: daysToSat));
+          final sun = sat.add(const Duration(days: 1));
+          return (eDay.year == sat.year && eDay.month == sat.month && eDay.day == sat.day) ||
+                 (eDay.year == sun.year && eDay.month == sun.month && eDay.day == sun.day);
+        } else if (_timeFilter == 'This Month') {
+          return eDay.year == now.year && eDay.month == now.month;
+        }
         return true;
       }).toList();
     }

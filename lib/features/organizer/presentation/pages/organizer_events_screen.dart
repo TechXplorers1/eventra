@@ -68,6 +68,8 @@ class _OrganizerEventsScreenState extends ConsumerState<OrganizerEventsScreen>
                   ),
                   child: Row(
                     children: [
+                      const EvBackButton(),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

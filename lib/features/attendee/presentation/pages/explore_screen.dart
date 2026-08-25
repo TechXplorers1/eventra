@@ -44,6 +44,42 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     super.dispose();
   }
 
+  DateTime? _parseEventDate(String dateStr) {
+    if (dateStr.isEmpty) return null;
+    final direct = DateTime.tryParse(dateStr);
+    if (direct != null) return direct;
+
+    try {
+      final parts = dateStr.replaceAll(',', '').trim().split(RegExp(r'\s+'));
+      if (parts.length >= 3) {
+        final monthStr = parts[0].toLowerCase();
+        final day = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+
+        const monthMap = {
+          'jan': 1, 'january': 1,
+          'feb': 2, 'february': 2,
+          'mar': 3, 'march': 3,
+          'apr': 4, 'april': 4,
+          'may': 5,
+          'jun': 6, 'june': 6,
+          'jul': 7, 'july': 7,
+          'aug': 8, 'august': 8,
+          'sep': 9, 'september': 9,
+          'oct': 10, 'october': 10,
+          'nov': 11, 'november': 11,
+          'dec': 12, 'december': 12,
+        };
+
+        final month = monthMap[monthStr];
+        if (month != null) {
+          return DateTime(year, month, day);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   List<EventData> _applyFilters(List<EventData> src) {
     var list = src;
     final q = _query.trim().toLowerCase();
@@ -57,6 +93,32 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
     if (_activeCategory != 'All') {
       list = list.where((e) => e.category == _activeCategory).toList();
+    }
+    if (_activeTime != 'All Time' && _activeTime != 'All') {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      list = list.where((e) {
+        final eventDate = _parseEventDate(e.date);
+        if (eventDate == null) return false;
+
+        final eDay = DateTime(eventDate.year, eventDate.month, eventDate.day);
+
+        if (_activeTime == 'Today') {
+          return eDay.year == today.year && eDay.month == today.month && eDay.day == today.day;
+        } else if (_activeTime == 'Tomorrow') {
+          final tomorrow = today.add(const Duration(days: 1));
+          return eDay.year == tomorrow.year && eDay.month == tomorrow.month && eDay.day == tomorrow.day;
+        } else if (_activeTime == 'This Weekend') {
+          final saturday = today.add(Duration(days: (6 - today.weekday) % 7));
+          final sunday = saturday.add(const Duration(days: 1));
+          return (eDay.year == saturday.year && eDay.month == saturday.month && eDay.day == saturday.day) ||
+                 (eDay.year == sunday.year && eDay.month == sunday.month && eDay.day == sunday.day);
+        } else if (_activeTime == 'This Month') {
+          return eDay.year == now.year && eDay.month == now.month;
+        }
+        return true;
+      }).toList();
     }
     return list;
   }
@@ -84,6 +146,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   ),
                   child: Row(
                     children: [
+                      const EvBackButton(),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text('Explore', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.foreground)),

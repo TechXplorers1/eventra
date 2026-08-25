@@ -1131,67 +1131,93 @@ class _OrganizerEventDetailScreenState extends ConsumerState<OrganizerEventDetai
         // Seat Grid
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: List.generate(sec.rows, (r) {
-              final rowLetter = String.fromCharCode(65 + r);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      child: Text(rowLetter, style: const TextStyle(fontSize: 10, color: Colors.white38)),
-                    ),
-                    const SizedBox(width: 8),
-                    ...List.generate(sec.seatsPerRow, (c) {
-                      final seatId = '$rowLetter${c + 1}';
-                      final isBooked = bookedSeats.contains(seatId);
-                      final isBlocked = sec.disabledSeats.contains(seatId);
+          child: Builder(builder: (context) {
+            int activeRowCounter = 0;
+            final Map<int, String> rowLetterMap = {};
+            for (int r = 0; r < sec.rows; r++) {
+              final physLetter = String.fromCharCode(65 + r);
+              bool isRowActive = false;
+              for (int c = 0; c < sec.seatsPerRow; c++) {
+                if (!sec.disabledSeats.contains('$physLetter${c + 1}')) {
+                  isRowActive = true;
+                  break;
+                }
+              }
+              if (isRowActive) {
+                rowLetterMap[r] = String.fromCharCode(65 + activeRowCounter);
+                activeRowCounter++;
+              } else {
+                rowLetterMap[r] = '';
+              }
+            }
 
-                      Color bg, border, textColor;
-                      if (isBooked) {
-                        bg = sectionColor;
-                        border = sectionColor;
-                        textColor = Colors.white;
-                      } else if (isBlocked) {
-                        bg = const Color(0xFF27272A);
-                        border = Colors.transparent;
-                        textColor = const Color(0xFF3F3F46);
-                      } else {
-                        bg = AppColors.border;
-                        border = const Color(0xFF27272A);
-                        textColor = Colors.white54;
-                      }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: List.generate(sec.rows, (r) {
+                final physicalRowLetter = String.fromCharCode(65 + r);
+                final displayRowLetter = rowLetterMap[r] ?? '';
+                int activeSeatNum = 0;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        child: Text(displayRowLetter, style: const TextStyle(fontSize: 10, color: Colors.white38)),
+                      ),
+                      const SizedBox(width: 8),
+                      ...List.generate(sec.seatsPerRow, (c) {
+                        final physicalSeatId = '$physicalRowLetter${c + 1}';
+                        final isBlocked = sec.disabledSeats.contains(physicalSeatId);
+                        if (!isBlocked) {
+                          activeSeatNum++;
+                        }
+                        final isBooked = bookedSeats.contains(physicalSeatId) || (!isBlocked && bookedSeats.contains('$displayRowLetter$activeSeatNum'));
 
-                      return GestureDetector(
-                        onTap: () {
-                          if (isBooked) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot block a seat that is already booked!')));
-                            return;
-                          }
-                          _toggleBlockSeat(sec, seatId, event);
-                        },
-                        child: Container(
-                          width: 28, height: 28,
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          decoration: BoxDecoration(
-                            color: bg,
-                            border: Border.all(color: border, width: 1),
-                            borderRadius: BorderRadius.circular(6),
+                        Color bg, border, textColor;
+                        if (isBooked) {
+                          bg = sectionColor;
+                          border = sectionColor;
+                          textColor = Colors.white;
+                        } else if (isBlocked) {
+                          bg = const Color(0xFF27272A);
+                          border = Colors.transparent;
+                          textColor = const Color(0xFF3F3F46);
+                        } else {
+                          bg = AppColors.border;
+                          border = const Color(0xFF27272A);
+                          textColor = Colors.white54;
+                        }
+
+                        return GestureDetector(
+                          onTap: () {
+                            if (isBooked) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot block a seat that is already booked!')));
+                              return;
+                            }
+                            _toggleBlockSeat(sec, physicalSeatId, event);
+                          },
+                          child: Container(
+                            width: 28, height: 28,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: BoxDecoration(
+                              color: bg,
+                              border: Border.all(color: border, width: 1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            alignment: Alignment.center,
+                            child: isBlocked
+                                ? const Icon(Icons.close, size: 14, color: Colors.white24)
+                                : Text('$activeSeatNum', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: textColor)),
                           ),
-                          alignment: Alignment.center,
-                          child: isBlocked
-                              ? const Icon(Icons.close, size: 14, color: Colors.white24)
-                              : Text('${c + 1}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: textColor)),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              );
-            }),
-          ),
+                        );
+                      }),
+                    ],
+                  ),
+                );
+              }),
+            );
+          }),
         ),
       ],
     );
